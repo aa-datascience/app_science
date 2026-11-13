@@ -35,7 +35,7 @@ Connexion, accueil, les trois cartes, feedback, vue profondeur d'un article déj
 
 ## Pas encore fait ou pas encore vérifié
 
-- **Aucun essai sur un téléphone Android** : le navigateur valide le flux, pas le rendu natif (WebView des équations, glissement tactile, clavier).
+- Essai sur un téléphone Android avec Expo Go (13 novembre 2026) : connexion, glissement des cartes et rendu des équations confirmés par l'utilisateur. C'est un constat à l'usage, pas une recette détaillée.
 - Hors ligne : écrit, non testé.
 - KaTeX est chargé depuis Internet : hors ligne, au premier affichage, les équations restent en LaTeX brut.
 - Réglages (nombre d'articles, catégories, heures des notifications), notifications push (jeton Expo, projet Firebase) et build APK : étapes suivantes de la spec.

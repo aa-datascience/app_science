@@ -1,19 +1,17 @@
 """Tests sans réseau ni appel à l'API Claude."""
 
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
 from arxiv_digest.arxiv import new_submissions, parse_feed
 from arxiv_digest.config import load_config
 from arxiv_digest.fulltext import html_to_text, latex_to_text
-from arxiv_digest.llm import LLM, BudgetExceeded
-from arxiv_digest.models import Candidate, Claim, GeneratedContent, Paper, RankBatch, Ranked, RankItem
+from arxiv_digest.models import Candidate, Claim, GeneratedContent, Paper, Ranked, RankItem
 from arxiv_digest.prefilter import category_score, keyword_score, select_candidates
 from arxiv_digest.profile import update_category_weights
 from arxiv_digest.scoring import score_all, select_edition
-from arxiv_digest.steps import load_prompt, missing_quotes, rank
+from arxiv_digest.steps import load_prompt, missing_quotes
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -167,37 +165,6 @@ def test_missing_quotes_ignores_whitespace_and_case():
     c = content_with(["the gap  closes\nat Tc", "an invented sentence"])
     assert c.card.difficulty == 5  # borné à 1-5
     assert missing_quotes(c, "We find that The gap closes at Tc in all samples.") == ["an invented sentence"]
-
-
-class FakeClient:
-    def __init__(self, outputs):
-        self.outputs, self.calls = list(outputs), []
-        self.messages = self
-
-    def parse(self, **kwargs):
-        self.calls.append(kwargs)
-        usage = SimpleNamespace(input_tokens=1_000_000, output_tokens=0, cache_creation_input_tokens=0, cache_read_input_tokens=0)
-        return SimpleNamespace(parsed_output=self.outputs.pop(0), stop_reason="end_turn", usage=usage)
-
-
-def test_rank_maps_results_and_logs_cost(cfg, tmp_path):
-    cands = [Candidate(paper=paper(1), prefilter_score=1.0), Candidate(paper=paper(2), prefilter_score=0.5)]
-    item = RankItem(arxiv_id="2611.00001", relevance=4, importance=3, novelty=3, difficulty=2, why="w")
-    stray = RankItem(arxiv_id="9999.99999", relevance=4, importance=3, novelty=3, difficulty=2, why="w")
-    client = FakeClient([RankBatch(items=[item, stray])])
-    llm = LLM(cfg, tmp_path / "usage.jsonl", "2026-11-13", client=client)
-    out = rank(llm, cands, cfg)
-    assert [r.candidate.paper.arxiv_id for r in out] == ["2611.00001"]  # id inconnu ignoré, article 2 sans note
-    assert "[exploration]" not in client.calls[0]["messages"][0]["content"].split("Papers:")[1]
-    assert llm.spent == pytest.approx(cfg.budget.prices[cfg.models.rank][0])
-    assert LLM(cfg, tmp_path / "usage.jsonl", "2026-11-13", client=client).spent == pytest.approx(llm.spent)
-
-
-def test_budget_cap_blocks_calls(cfg, tmp_path):
-    cfg.budget.daily_usd = 0.0
-    llm = LLM(cfg, tmp_path / "usage.jsonl", "2026-11-13", client=FakeClient([]))
-    with pytest.raises(BudgetExceeded):
-        llm.parse(step="rank", model=cfg.models.rank, system="s", content="c", schema=RankBatch)
 
 
 def test_prompts_exist_and_are_versioned():

@@ -26,7 +26,23 @@ Pipeline complet : copier `.env.example` vers `.env`, y mettre la clé API Anthr
 .venv/Scripts/python -m arxiv_digest run --size 2
 ```
 
-L'édition est écrite dans `out/editions/AAAA-MM-JJ.json` et chaque appel au modèle dans `out/api_usage.jsonl` (tokens, coût estimé). Le pipeline s'arrête proprement au plafond `budget.daily_usd` de `config.yaml`.
+L'édition est écrite dans `out/editions/AAAA-MM-JJ.json` et chaque appel au modèle dans `out/api_usage.jsonl` (tokens, coût).
+
+Pour le pipeline de nuit, `run --batch` passe la génération et la vérification par l'API Message Batches : moitié prix, résultat en général en moins d'une heure.
+
+## Coût
+
+- **Plafond mensuel** (`budget.monthly_usd`, 15 $ par défaut) : le budget restant est réparti sur les jours restants du mois. Si le budget du jour ne couvre pas l'édition complète, le nombre d'articles est réduit avant de commencer et c'est signalé dans les logs et dans les notes de l'édition.
+- **Cache** (`cache`) : le texte de l'article est mis en cache entre génération, vérification et corrections.
+- **Sections utiles** (`fulltext.mode: sections`) : n'envoie que résumé, introduction, résultats et discussion/conclusion ; pour les articles sans section « Results », retire seulement annexes, méthodes et compléments.
+
+## Essai comparatif des modèles
+
+```bash
+.venv/Scripts/python -m arxiv_digest compare --n 4 --max-usd 5
+```
+
+Génère et vérifie les mêmes articles avec Haiku, Sonnet et Opus, et écrit `comparison/AAAA-MM-JJ.md` : contenus côte à côte, résultat de la vérification, coûts mesurés et extrapolation mensuelle.
 
 ## Réglages
 

@@ -14,11 +14,15 @@
 
 - Tests : `.venv/Scripts/python -m pytest -q`
 - Essai gratuit : `.venv/Scripts/python -m arxiv_digest run --no-llm`
-- Pipeline complet (payant) : `.venv/Scripts/python -m arxiv_digest run`
+- Pipeline complet (payant) : `.venv/Scripts/python -m arxiv_digest run` (synchrone) ou `run --batch` (API Batches, -50 %, pour le pipeline de nuit)
+- Essai comparatif des modèles (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
 
 ## Règles
 
 - Demander avant toute dépense ou tout choix d'hébergement. Lancer le pipeline sans `--no-llm` est une dépense.
+- Ne pas changer les modèles par défaut de `config.yaml` sans décision explicite.
+- Plafond mensuel (`budget.monthly_usd`) : la taille de l'édition est fixée avant tout appel payant (`budget.py`) ; une édition n'est jamais coupée en cours de route.
+- La clé API vit dans `.env` uniquement. Ne jamais commiter `.env`, ne jamais mettre de clé dans `.env.example`.
 - Aucun appel réel à l'API Claude dans les tests.
 - Sorties des modèles validées par des schémas Pydantic (`models.py`).
 - Contenu généré en anglais ; code commenté et documentation en français.

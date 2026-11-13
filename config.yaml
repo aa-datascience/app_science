@@ -16,11 +16,11 @@ categories:
     hep-th: 1.0
     gr-qc: 1.0
     astro-ph.CO: 1.0
+    cond-mat.quant-gas: 1.0
   # Réservoir pour l'emplacement exploration (reste de la physique).
   exploration:
     - cond-mat.stat-mech
     - cond-mat.mtrl-sci
-    - cond-mat.quant-gas
     - physics.optics
     - physics.atom-ph
     - astro-ph.HE
@@ -31,13 +31,38 @@ categories:
 prefilter:
   max_candidates: 100
   max_exploration_candidates: 15
-  # Mots-clés pondérés, cherchés dans le titre (compte double) et le résumé.
-  # À ADAPTER : ce sont des exemples neutres tirés des catégories suivies.
+  # Mots-clés pondérés, cherchés (sans casse, en sous-chaîne) dans le titre
+  # (compte double) et le résumé.
   keywords_positive:
+    # supraconductivité
+    josephson: 2.0
+    andreev: 2.0
+    bogoliubov-de gennes: 2.0
+    bdg: 1.5
     superconduct: 1.0
-    topological: 0.5
-    quantum error correction: 0.5
-  keywords_negative: {}
+    proximity effect: 1.0
+    thin film: 0.5
+    # physique mésoscopique
+    mesoscopic: 1.0
+    quantum transport: 0.5
+    quantum dot: 0.5
+    nanowire: 0.5
+    # gaz quantiques et atomes froids
+    ultracold: 1.0
+    cold atom: 1.0
+    bose-einstein: 1.0
+    fermi gas: 1.0
+    optical lattice: 0.5
+    # phénoménologie des particules
+    phenomenolog: 0.5
+    beyond the standard model: 0.5
+    effective field theory: 0.5
+  # « théorie et intuition physique plutôt que résultats techniques incrémentaux »
+  keywords_negative:
+    benchmark: 0.5
+    software package: 0.5
+    dataset: 0.5
+    technical design report: 1.0
   followed_authors: []
   author_bonus: 2.0
 
@@ -50,12 +75,13 @@ scoring:
     prefilter: 0.1
 
 profile:
-  # Description libre des intérêts, envoyée au modèle de classement. À ADAPTER.
+  # Description libre des intérêts, envoyée au modèle de classement.
   interests: >
-    Physicist reader. Follows condensed matter (superconductivity, mesoscopic
-    and strongly correlated systems), quantum physics, high-energy theory and
-    phenomenology, gravitation and cosmology. Prefers clear physical results
-    over incremental technical papers.
+    MSc physics student at ETH Zurich. Main interests: superconductivity
+    (Josephson junctions, Andreev bound states, BdG methods, superconducting
+    thin films), mesoscopic physics, quantum gases and cold atoms, particle
+    phenomenology. Prefers theory and clear physical insight over incremental
+    technical results. Curious about major results in any area of physics.
   # Niveau par sous-domaine : beginner | intermediate | expert
   levels: {}
 
@@ -67,12 +93,35 @@ models:
   rank_batch_size: 25
 
 budget:
-  daily_usd: 1.0                # plafond quotidien : le pipeline s'arrête proprement au-delà
-  # Prix en USD par million de tokens [entrée, sortie].
+  monthly_usd: 15.0             # plafond mensuel
+  # Le pipeline répartit le budget restant sur les jours restants du mois et
+  # réduit le nombre d'articles AVANT de commencer : une édition n'est jamais
+  # coupée en cours de route.
+  # Prix en USD par million de tokens [entrée, sortie, lecture de cache].
   prices:
-    claude-haiku-5-5: [0.10, 0.50]
-    claude-sonnet-5-5: [2.0, 10.0]
-    claude-opus-5-5: [4.0, 20.0]
+    claude-haiku-5-5: [0.10, 0.50, 0.01]
+    claude-sonnet-5-5: [2.0, 10.0, 0.10]
+    claude-opus-5-5: [4.0, 20.0, 0.20]
+  # Estimation par article tant qu'il n'y a pas d'historique dans api_usage.jsonl.
+  assumed_tokens_per_article: [40000, 10000]   # [entrée, sortie], génération + vérification
+
+batch:
+  # API Message Batches (-50 %) pour la génération et la vérification : `run --batch`.
+  poll_seconds: 60
+  timeout_minutes: 300
+
+cache:
+  # Cache du texte de l'article, partagé entre génération, vérification et corrections.
+  # Synchrone : les appels d'un même article se suivent, le cache de 5 min suffit.
+  sync_ttl: 5m                  # 5m | 1h | off
+  # Batch : les lots sont séparés de plus de 5 min. Le cache d'une heure coûte 2x à
+  # l'écriture ; il n'est rentable que si une bonne part des articles demande une correction.
+  batch_ttl: "off"              # 5m | 1h | off
+
+fulltext:
+  # full : tout le texte. sections : résumé, introduction, résultats,
+  # discussion/conclusion seulement (retombe sur full si l'article n'a pas ces sections).
+  mode: full
 
 arxiv:
   user_agent: "arxiv-digest-pipeline/0.1"

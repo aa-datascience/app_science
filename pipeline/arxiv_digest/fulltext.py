@@ -32,6 +32,9 @@ def html_to_text(html: str) -> str:
         tex = math.get("alttext") or math.get_text(" ", strip=True)
         display = math.get("display") == "block"
         math.replace_with(f" $${tex}$$ " if display else f"${tex}$")
+    # Titres de section marqués « ## » : sert au mode « sections utiles ».
+    for h in doc.find_all("h2"):
+        h.insert(0, "## ")
     # Saut de ligne après les blocs seulement : le texte en ligne (et ses équations)
     # reste d'un seul tenant.
     for el in doc.find_all(["p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "figcaption", "tr", "br"]):
@@ -68,7 +71,42 @@ def latex_to_text(files: dict[str, str]) -> str:
     i = body.find("\\begin{document}")
     body = body[i + len("\\begin{document}") :] if i >= 0 else body
     body = re.split(r"\\begin\{thebibliography\}|\\bibliography\{", body)[0]
+    # Titres de section marqués « ## », comme pour le HTML.
+    body = body.replace("\\appendix", "\n\n## Appendix\n\n")
+    body = re.sub(r"\\section\*?\{([^}]*)\}", r"\n\n## \1\n\n", body)
     return re.sub(r"\n\s*\n+", "\n\n", body).strip()
+
+
+_USEFUL = re.compile(r"intro|result|discussion|conclu|summary|outlook", re.I)
+_RESULTS = re.compile(r"result|discussion", re.I)
+_ANNEX = re.compile(
+    r"appendi|supplement|^S\d|acknowledg|method|fabrication|setup|data availab|code availab|author contrib|competing",
+    re.I,
+)
+
+
+def select_sections(text: str) -> tuple[str, bool]:
+    """Garde le début (titre, résumé) et les sections introduction, résultats,
+    discussion, conclusion. Renvoie (texte, réduit).
+
+    Beaucoup d'articles nomment leurs sections par sujet (« Model », « Phase diagram »),
+    sans section « Results » : on garde alors tout sauf les annexes, méthodes et
+    compléments. Si rien n'est retiré, le texte complet est renvoyé tel quel.
+    """
+    parts = re.split(r"(?m)^## ", text)
+    if len(parts) < 3:
+        return text, False
+    title = lambda s: s.split("\n", 1)[0]  # noqa: E731
+    if any(_RESULTS.search(title(s)) for s in parts[1:]):
+        kept = [s for s in parts[1:] if _USEFUL.search(title(s))]
+    else:
+        # Sections nommées par sujet : les résultats sont dans le corps de l'article.
+        # On ne retire alors que ce qui est clairement annexe.
+        kept = [s for s in parts[1:] if not _ANNEX.search(title(s))]
+    if not kept or len(kept) == len(parts) - 1:
+        return text, False
+    body = "\n\n".join("## " + s.strip() for s in kept)
+    return (parts[0].rstrip() + "\n\n" + body).strip(), True
 
 
 def _read_eprint(data: bytes) -> dict[str, str]:

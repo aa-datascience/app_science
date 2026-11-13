@@ -130,6 +130,8 @@ class EditionItem(BaseModel):
     text_source: Literal["html", "latex", "pdf", "abstract"]
     based_on_abstract: bool
     text_truncated: bool = False
+    text_mode: Literal["full", "sections"] = "full"
+    corrected: bool = False
     model: str
     prompt_version: str
 

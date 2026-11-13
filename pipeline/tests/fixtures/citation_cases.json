@@ -1,0 +1,49 @@
+{
+  "text": "We measure the critical temperature $T_{c}$ of the film and find $T_{c}=9.2$ K. The supercurrent is carried by Andreev bound states; the gap closes at the transition. The ﬁeld dependence follows $\\mathrm{d}I/\\mathrm{d}V \\propto \\left(1-B/B_{c}\\right)^{2}$ up to 1.5 T.",
+  "normalize": [
+    ["the critical  temperature\n$T_{c}$ = 9.2 K.", "thecriticaltemperaturetc92k"],
+    ["The critical temperature \\mathrm{T}_c=9.2\\,K", "thecriticaltemperaturetc92k"],
+    ["ﬁeld", "field"],
+    ["Señor Müller’s “gap” — 2Δ/k_B T_c ≈ 3.5", "señormüllersgap2δkbtc35"],
+    ["x² + 10⁻³", "x2103"]
+  ],
+  "claims": [
+    {
+      "name": "un tiers d'échecs est toléré",
+      "quotes": [
+        "The supercurrent is carried by Andreev bound states",
+        "we measure the critical temperature T_c of the film, and find T_c = 9.2 K",
+        "The authors demonstrate room-temperature superconductivity"
+      ],
+      "removed": [2],
+      "status": "verified"
+    },
+    {
+      "name": "plus d'un tiers d'échecs",
+      "quotes": [
+        "The supercurrent is carried by Andreev bound states",
+        "The authors demonstrate room-temperature superconductivity"
+      ],
+      "removed": [1],
+      "status": "unverified"
+    },
+    {
+      "name": "mise en forme LaTeX ignorée",
+      "quotes": ["The field dependence follows dI/dV \\propto (1-B/B_c)^2 up to 1.5 T"],
+      "removed": [],
+      "status": "verified"
+    },
+    {
+      "name": "citation trop courte pour prouver quoi que ce soit",
+      "quotes": ["the gap closes"],
+      "removed": [0],
+      "status": "unverified"
+    },
+    {
+      "name": "aucune affirmation",
+      "quotes": [],
+      "removed": [],
+      "status": "unverified"
+    }
+  ]
+}

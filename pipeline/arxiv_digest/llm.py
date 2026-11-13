@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -71,7 +72,7 @@ class LLM:
     def __init__(
         self,
         cfg: Config,
-        usage_log: Path,
+        usage_log: Path | Callable[[dict], None],
         day: str,
         client: anthropic.Anthropic | None = None,
         hard_cap_usd: float | None = None,
@@ -123,9 +124,12 @@ class LLM:
         row["cost_usd"] = round(usage_cost(prices, row), 6) if prices else 0.0
         self.run_spent += row["cost_usd"]
         self.records.append(row)
-        self.usage_log.parent.mkdir(parents=True, exist_ok=True)
-        with self.usage_log.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(row) + "\n")
+        if callable(self.usage_log):  # stockage (fichier local ou base) fourni par l'appelant
+            self.usage_log(row)
+        else:
+            self.usage_log.parent.mkdir(parents=True, exist_ok=True)
+            with self.usage_log.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(row) + "\n")
         log.info(
             "%s [%s%s] in=%d cache(w=%d r=%d) out=%d coût=%.4f$",
             req.step,

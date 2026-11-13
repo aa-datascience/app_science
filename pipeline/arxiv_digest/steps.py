@@ -143,16 +143,20 @@ def make_cards(
 # ---------- À l'ouverture d'un article : détail à partir du texte complet ----------
 
 
+# Ces libellés sont aussi copiés dans server_config pour l'Edge Function open-paper.
+SOURCE_NOTES = {
+    "html": "full text",
+    "latex": "full LaTeX source",
+    "pdf": "text extracted from the PDF; equations may be garbled",
+    "abstract": "ABSTRACT ONLY, the full text was not available",
+    "sections": "abstract, introduction, results and discussion/conclusion sections only; other sections were left out",
+    "truncated": "; the text was cut at a length limit and its end is missing",
+}
+
+
 def _source_note(art: Article) -> str:
-    note = {
-        "html": "full text",
-        "latex": "full LaTeX source",
-        "pdf": "text extracted from the PDF; equations may be garbled",
-        "abstract": "ABSTRACT ONLY, the full text was not available",
-    }[art.source]
-    if art.mode == "sections":
-        note = "abstract, introduction, results and discussion/conclusion sections only; other sections were left out"
-    return note + ("; the text was cut at a length limit and its end is missing" if art.truncated else "")
+    note = SOURCE_NOTES["sections" if art.mode == "sections" else art.source]
+    return note + (SOURCE_NOTES["truncated"] if art.truncated else "")
 
 
 def detail_req(art: Article, cfg: Config, label: str = "") -> tuple[Req, str]:

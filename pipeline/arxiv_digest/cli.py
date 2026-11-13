@@ -10,60 +10,29 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import anthropic
+import httpx
 from dotenv import load_dotenv
 
 from .arxiv import fetch_feeds, new_submissions
 from .budget import affordable_size, can_open, estimate_cost, month_spent
 from .config import REPO_ROOT, Config, load_config
 from .fulltext import fetch_fulltext
-from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused, read_usage
-from .models import Candidate, Edition, EditionItem, Paper, Ranked, StoredDetail
+from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused
+from .models import Candidate, Edition, EditionItem, Paper, Ranked
 from .prefilter import select_candidates
 from .scoring import score_all, select_edition
 from .steps import Article, generate_detail, make_article, make_cards, rank
+from .store import _write_json, make_store
 
 log = logging.getLogger("arxiv_digest")
-RESERVE_DAYS = 7
-
-
-def _read_json(path: Path, default):
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
-
-
-def _write_json(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
-def load_reserve(path: Path, day: str) -> list[Ranked]:
-    """Bons articles des 7 derniers jours non retenus (pour les jours sans annonces arXiv)."""
-    cutoff = (date.fromisoformat(day) - timedelta(days=RESERVE_DAYS)).isoformat()
-    return [Ranked.model_validate(r["ranked"]) for r in _read_json(path, []) if r["date"] >= cutoff]
-
-
-def save_reserve(path: Path, day: str, unselected: list[Ranked], used_ids: set[str]) -> None:
-    cutoff = (date.fromisoformat(day) - timedelta(days=RESERVE_DAYS)).isoformat()
-    rows = [
-        r
-        for r in _read_json(path, [])
-        if r["date"] >= cutoff and r["ranked"]["candidate"]["paper"]["arxiv_id"] not in used_ids
-    ]
-    known = {r["ranked"]["candidate"]["paper"]["arxiv_id"] for r in rows}
-    rows += [
-        {"date": day, "ranked": r.model_dump()}
-        for r in unselected
-        if r.candidate.paper.arxiv_id not in known
-    ]
-    _write_json(path, rows)
 
 
 def ingest(cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None) -> tuple[int, list[Candidate]]:
@@ -98,8 +67,8 @@ def run(
     cfg: Config, *, day: str, out: Path, no_llm: bool, size: int | None, fixtures: Path | None, batch: bool
 ) -> int:
     notes: list[str] = []
-    seen_path, reserve_path, usage_path = out / "seen.json", out / "reserve.json", out / "api_usage.jsonl"
-    seen_ids = set(_read_json(seen_path, []))
+    store = make_store(out)
+    seen_ids = store.seen_ids()
 
     n_papers, candidates = ingest(cfg, day=day, seen_ids=seen_ids, fixtures=fixtures)
     _write_json(out / "candidates" / f"{day}.json", [c.model_dump() for c in candidates])
@@ -113,7 +82,7 @@ def run(
 
     # Plafond mensuel : la taille de l'édition est fixée ici, avant tout appel payant,
     # pour ne jamais couper une édition en cours de route.
-    usage = read_usage(usage_path)
+    usage = store.usage_rows(day)
     spent = month_spent(usage, day)
     per_card = estimate_cost(cfg, usage, "card", batch=batch)
     wanted = size or cfg.edition.size
@@ -130,9 +99,10 @@ def run(
         notes.append(msg)
         log.warning(msg)
 
-    llm = LLM(cfg, usage_path, day)
+    llm = LLM(cfg, store.log_usage, day)
     items: list[EditionItem] = []
     ranked: list[Ranked] = []
+    articles: dict[str, Article] = {}
     try:
         if target_size == 0:
             raise BatchFailed("Budget du jour insuffisant pour une seule carte : pas d'édition.")
@@ -141,7 +111,7 @@ def run(
         if candidates:
             ranked = score_all(rank(llm, candidates, cfg), cfg)
         else:
-            ranked = [r for r in load_reserve(reserve_path, day) if r.candidate.paper.arxiv_id not in seen_ids]
+            ranked = [r for r in store.reserve(day) if r.candidate.paper.arxiv_id not in seen_ids]
             notes.append("Pas de nouvelles annonces arXiv : édition tirée de la réserve de la semaine.")
             log.info("aucun candidat: %d articles en réserve", len(ranked))
 
@@ -166,6 +136,10 @@ def run(
                 )
         if len(items) < len(selected):
             notes.append(f"{len(selected) - len(items)} cartes en erreur, articles retirés de l'édition.")
+
+        # Texte complet des articles de l'édition, stocké pour l'ouverture (gratuit : aucun modèle).
+        if store.wants_fulltext:
+            articles = {i.paper.arxiv_id: fetch_article(i.paper, cfg) for i in items}
     except BatchFailed as e:
         notes.append(str(e))
         log.error("%s", e)
@@ -176,16 +150,18 @@ def run(
         notes.append(f"Erreur de l'API Claude : {e}")
         log.error("erreur de l'API Claude: %s", e)
 
-    # Publication (locale : un fichier JSON)
+    # Publication : copie locale, et base Supabase si elle est configurée
     edition = Edition(
         date=day, status="ready" if items else "failed", items=items, cost_usd=round(llm.run_spent, 4), notes=notes
     )
     path = out / "editions" / f"{day}.json"
-    _write_json(path, edition.model_dump())
+    try:
+        store.save_night(cfg, edition, ranked, articles)
+    except httpx.HTTPError as e:
+        body = e.response.text[:300] if isinstance(e, httpx.HTTPStatusError) else ""
+        log.error("écriture en base impossible: %s %s (copie locale : %s)", e, body, path)
+        return 4
 
-    used = {i.paper.arxiv_id for i in items}
-    _write_json(seen_path, sorted(seen_ids | used))
-    save_reserve(reserve_path, day, [r for r in ranked if r.candidate.paper.arxiv_id not in used], used)
 
     print(
         f"\nÉdition {day}: {edition.status}, {len(items)} cartes, "
@@ -200,29 +176,19 @@ def run(
 # ---------- À l'ouverture d'un article : détail, généré une fois puis stocké ----------
 
 
-def find_paper(out: Path, arxiv_id: str) -> Paper | None:
-    """Cherche l'article dans les éditions locales, de la plus récente à la plus ancienne."""
-    for path in sorted((out / "editions").glob("*.json"), reverse=True):
-        for item in _read_json(path, {}).get("items", []):
-            if item["paper"]["arxiv_id"] == arxiv_id:
-                return Paper.model_validate(item["paper"])
-    return None
-
-
 def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
-    """Ce que fera l'Edge Function quand une carte est ouverte dans l'app."""
-    stored = out / "details" / f"{arxiv_id}.json"
-    if stored.exists():
-        d = StoredDetail.model_validate(_read_json(stored, {}))
-        print(f"Détail déjà généré ({d.verification_status}, {d.model}) : aucun appel. -> {stored}")
+    """Ce que fait l'Edge Function open-paper quand une carte est ouverte dans l'app."""
+    store = make_store(out)
+    stored = store.get_detail(arxiv_id)
+    if stored is not None:
+        print(f"Détail déjà généré ({stored.verification_status}, {stored.model}) : aucun appel.")
         return 0
-    paper = find_paper(out, arxiv_id)
+    paper = store.find_paper(arxiv_id)
     if paper is None:
-        log.error("article %s absent des éditions locales (lancer d'abord `run`)", arxiv_id)
+        log.error("article %s absent des éditions (lancer d'abord `run`)", arxiv_id)
         return 1
 
-    usage_path = out / "api_usage.jsonl"
-    usage = read_usage(usage_path)
+    usage = store.usage_rows(day)
     spent, estimate = month_spent(usage, day), estimate_cost(cfg, usage, "detail")
     if not can_open(monthly_cap=cfg.budget.monthly_usd, spent=spent, estimate=estimate):
         log.warning(
@@ -231,19 +197,19 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
         )
         return 3
 
-    llm = LLM(cfg, usage_path, day)
+    llm = LLM(cfg, store.log_usage, day)
     try:
-        detail = generate_detail(llm, fetch_article(paper, cfg), cfg)
+        detail = generate_detail(llm, store.article(paper) or fetch_article(paper, cfg), cfg)
     except anthropic.AuthenticationError:
         log.error("clé API Anthropic absente ou invalide (voir .env.example)")
         return 2
     except (LLMRefused, LLMInvalid, anthropic.APIConnectionError, anthropic.APIStatusError) as e:
         log.error("détail %s: échec (%r)", arxiv_id, e)
         return 1
-    _write_json(stored, detail.model_dump())
+    store.save_detail(detail)
     print(
         f"Détail {arxiv_id}: {detail.verification_status}, {len(detail.detail.claims)} affirmations sourcées, "
-        f"{len(detail.removed_claims)} retirées, {llm.run_spent:.4f}$ -> {stored}"
+        f"{len(detail.removed_claims)} retirées, {llm.run_spent:.4f}$"
     )
     return 0
 

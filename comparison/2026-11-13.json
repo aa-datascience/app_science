@@ -1,0 +1,768 @@
+{
+  "date": "2026-11-13",
+  "cap_usd": 2.0,
+  "total_usd": 0.3925,
+  "n_candidates": 115,
+  "articles": [
+    {
+      "id": "2611.17001",
+      "title": "Reflection Zeros Set the Scattering Invariant of Finite Majorana Wires",
+      "categories": "cond-mat.mes-hall, cond-mat.supr-con, physics.optics",
+      "slot": "main",
+      "why": "Shows that the sign of electron reflection at zero energy counts reflectionless states in a finite Majorana wire, and that zero-bias conductance above e^2/h certifies the invariant, directly addressing the debate about Majorana signatures.",
+      "source": "html",
+      "chars": 22477
+    },
+    {
+      "id": "2611.16705",
+      "title": "A superconducting quantum point contact in Ge",
+      "categories": "cond-mat.mes-hall, cond-mat.supr-con",
+      "slot": "main",
+      "why": "Reports a gate-tunable superconducting quantum point contact in Ge/SiGe where switching-current quantization directly tracks conductance quantization, a clear few-mode supercurrent result matching the reader's Josephson and mesoscopic interests.",
+      "source": "html",
+      "chars": 44638
+    },
+    {
+      "id": "2611.14615",
+      "title": "Symmetry-Enabled Rolling of Composite Bosons: A Route to Superconductivity from Strong Repulsion with $T_c$ Proportional to the Electron Bandwidth",
+      "categories": "cond-mat.supr-con",
+      "slot": "main",
+      "why": "Proposes a symmetry-enabled rolling mechanism that lets tightly bound 3e1h composites move without costly intermediate states, aiming at Tc proportional to the bandwidth; a strong conceptual idea, though the numerics are limited to a proposed bilayer.",
+      "source": "html",
+      "chars": 111526
+    },
+    {
+      "id": "2611.17222",
+      "title": "Circular phonons generate negligible magnetization in insulators",
+      "categories": "cond-mat.mtrl-sci",
+      "slot": "exploration",
+      "why": "By measuring the stray magnetic field outside a driven SiC crystal, it places the magnetization from circular phonons below 0.001 T, which resolves the controversy raised by polarization-rotation experiments.",
+      "source": "pdf",
+      "chars": 54885
+    }
+  ],
+  "ranking": {
+    "calls": 5,
+    "input": 61937,
+    "output": 18071,
+    "usd": 0.015229
+  },
+  "cards": {
+    "batch": true,
+    "n_done": 4,
+    "stats": {
+      "calls": 4,
+      "input": 5936,
+      "output": 1258,
+      "usd": 0.0006119999999999999
+    },
+    "cards": {
+      "2611.17001": {
+        "plain_title": "In finite Majorana wires, a sign of electron reflection at zero energy counts reflectionless states and can be read from zero-bias conductance",
+        "finding": "The paper shows that the sign Q of electron reflection at zero energy equals -1 when an odd number of reflectionless states (waves transmitted fully from one contact to the other) lie in the lower half of the complex energy plane, and that at zero temperature Q = -1 exactly when the zero-bias conductance at a contact exceeds e^2/h.",
+        "why_it_matters": "It addresses what the topological sign Q actually certifies in a finite device, where zero-bias peaks can be mimicked by ordinary bound states, and shows how transport measurements could read the invariant.",
+        "tags": [
+          "majorana modes",
+          "topological superconductivity",
+          "scattering theory",
+          "mesoscopic transport",
+          "zero-bias conductance"
+        ],
+        "difficulty": 4
+      },
+      "2611.16705": {
+        "plain_title": "A gate-tunable superconducting point contact in germanium shows quantized supercurrent steps",
+        "finding": "The authors built a gate-controlled superconducting quantum point contact in Ge/SiGe, read out its current-phase relation and switching current through a highly asymmetric SQUID, and report that switching-current quantization directly corresponds to conductance quantization, with strong gate control of transmission near the first conductance plateau and photon-assisted multiple Andreev reflections and Shapiro replicas under microwave irradiation.",
+        "why_it_matters": "The work links the normal-state transport modes of a semiconductor point contact to its superconducting response, offering a phase-sensitive way to study few-mode supercurrent transport in germanium-based hybrid devices.",
+        "tags": [
+          "superconducting quantum point contact",
+          "germanium",
+          "Josephson effect",
+          "conductance quantization",
+          "Andreev reflection"
+        ],
+        "difficulty": 4
+      },
+      "2611.14615": {
+        "plain_title": "Superconductivity from strong electron repulsion: a symmetry-enabled route to transition temperatures set by the electron bandwidth",
+        "finding": "The paper proposes that if each hole binds three electrons into a composite boson, symmetry can let that composite move by single-particle hops ('rolling') without a costly high-energy intermediate state, keeping its mass finite even for infinitely strong binding; the authors construct fourteen minimal lattice models supporting rolling, show such composites can be stabilized in the ground state, and use exact numerics in a proposed dual-gate bilayer to find Tc reaching a few percent of the electron hopping.",
+        "why_it_matters": "It addresses why strong Coulomb repulsion has not yet yielded superconductors with Tc set by the electron bandwidth, offering a symmetry-based criterion for designing such systems.",
+        "tags": [
+          "superconductivity",
+          "strong correlations",
+          "composite bosons",
+          "lattice models",
+          "bilayer"
+        ],
+        "difficulty": 4
+      },
+      "2611.17222": {
+        "plain_title": "Driving circular atomic vibrations in an insulator produces almost no magnetization",
+        "finding": "By measuring both the polarization rotation inside a driven SiC crystal and the magnetic stray field outside it, the authors find that the magnetization is negligibly small, with $\\mu_0 M \\lt 0.001$ T, despite a colossal polarization rotation at 5 MV/cm mid-infrared drive.",
+        "why_it_matters": "The controversy over whether circular phonons carry sizeable true magnetization affects the interpretation of experiments on synthetic magnetic fields and ferroaxial control, and this measurement addresses the confounding factors in earlier polarization-rotation experiments.",
+        "tags": [
+          "circular phonons",
+          "phonon magnetism",
+          "ultrafast optics",
+          "faraday effect",
+          "silicon carbide"
+        ],
+        "difficulty": 4
+      }
+    }
+  },
+  "runs": [
+    {
+      "label": "sonnet",
+      "model": "claude-sonnet-5-5",
+      "outcomes": {
+        "2611.17001": {
+          "arxiv_id": "2611.17001",
+          "detail": {
+            "explanation_lay": "Majorana modes are exotic excitations at the ends of certain superconducting wires, proposed as building blocks for protected quantum bits. Experiments look for them as a conductance peak at zero voltage, but ordinary, non-topological states can produce the same peak. For long wires theory offers a clean test: the sign of the electron reflection at zero energy tells the two phases apart. In a real, finite wire, though, it was unclear what that sign actually certifies.\n\nThis paper shows that the sign is set by counting special states called reflectionless states, in which a wave enters through one contact and leaves entirely through the other. These states have complex energies. The sign is negative when an odd number of them sit in the lower half of the complex energy plane. For a finite wire this means the two Majorana end modes are split by less than their coupling to the contacts. It does not mean the wire is in a protected topological phase.\n\nIn a symmetric device, each sign change is a point where two such states merge, which makes the transmission as flat as possible around zero energy. The sign is also readable from conductance: at zero temperature it is negative exactly when the zero-bias conductance at a contact exceeds one unit of $e^2/h$. This works only if the temperature is low enough; the paper's example Kitaev chain at 45 mK is too warm.",
+            "explanation_expert": "Setup: a wire with BdG Hamiltonian $H$ (even dimension, class D) is coupled to leads L and R in the wide-band limit. The reflection determinant factorizes as $$\\det r_L(E)=\\frac{\\det(E-H_Z)}{\\det(E-H_P)},\\quad H_{P,Z}=H\\mp\\tfrac{i}{2}\\Gamma_L-\\tfrac{i}{2}\\Gamma_R.$$ Poles are eigenvalues of $H_P$, where both leads drain the wire. Zeros are eigenvalues of $H_Z$, where L acts as gain and R as loss; they are reflectionless states.\n\nKey result: in a Majorana basis $H=iA$ with $A$ real antisymmetric and $\\Gamma_{L,R}$ real, so $H_{P,Z}=iM_{P,Z}$ with real $M$. Then $\\det r_L(0)=\\det M_Z/\\det M_P$. Since both leads drain the wire and $N$ is even, $\\det M_P>0$, so $Q=\\operatorname{sign}\\det M_Z$. Zeros are symmetric under $z\\to -z^*$. Off-axis pairs contribute $|z|^2>0$, while each zero on the negative imaginary axis contributes a negative factor. Hence $$Q=(-1)^{N_-},$$ with $N_-$ the number of zeros with $\\operatorname{Im}z<0$. $Q$ changes only when a zero crosses $E=0$ along the imaginary axis. With one lead, zeros are conjugates of poles, so $Q=+1$.\n\nTwo-Majorana model: $$z_\\pm=\\tfrac{i}{2}(\\gamma_L-\\gamma_R)\\pm[\\varepsilon^2-\\tfrac14(\\gamma_L+\\gamma_R)^2]^{1/2},$$ and $\\det M_Z=\\varepsilon^2-\\gamma_L\\gamma_R$, so $Q=\\operatorname{sign}(\\varepsilon^2-\\gamma_L\\gamma_R)$. For $\\gamma_L=\\gamma_R=\\gamma$ a real zero pair meets at $E=0$ at $\\varepsilon=\\gamma$ and splits along the imaginary axis. This is an EP of $H_Z$, since $H_Z$ is nilpotent there. Particle-hole symmetry ($z\\to-z^*$) plus a mirror symmetry ($z\\to z^*$) force sign changes to occur as double zeros at $E=0$. This gives $|\\det r_L|^2\\propto E^4$ and $$T(E)=\\frac{4\\gamma^4}{E^4+4\\gamma^4},$$ a second-order Butterworth response. For $\\gamma_L\\ne\\gamma_R$ the sign change at $\\varepsilon=\\sqrt{\\gamma_L\\gamma_R}$ is separated from the EP at $(\\gamma_L+\\gamma_R)/2$.\n\nConductance: if lead L couples through one Majorana mode, $$G_{LL}(E)=\\frac{e^2}{h}[1-\\operatorname{Re}\\det r_L(E)],$$ so at $T=0$, $Q=-1$ exactly when $G_{LL}(0)>e^2/h$. In the two-mode model $G_{LL}(0)=(e^2/h)\\,2\\gamma_L\\gamma_R/(\\varepsilon^2+\\gamma_L\\gamma_R)$.\n\nNumerics: a 1D InAs/Al wire ($L=3\\ \\mu$m, $B_c=0.864$ T) and a 2D Kwant device. The first sign change is at $B_1=0.8619$ T in the wire, with $1-T_1\\propto E^4$ (fitted exponent 3.99). Seven further sign changes per device occur as $\\varepsilon$ oscillates. Eq. (2) is checked at all 384 wire and 741 2D settings. The threshold requires $k_BT\\lesssim0.2\\gamma$ and a single Majorana coupling mode. Quasi-Majorana states with weakly coupled modes violate the temperature condition.",
+            "context": {
+              "before": "For long wires, the sign of $\\det r(0)$ was known to be the class D topological invariant, changing only where a mode is perfectly transmitted. For finite wires, earlier work showed $Q=+1$ through one lead and $Q=\\operatorname{sign}(\\varepsilon^2-\\gamma_L\\gamma_R)$ between two leads, so its meaning depended on contacts. Scattering poles and conductance peaks were well studied, and reflection zeros and reflectionless EPs were known in photonics and in Josephson junctions.",
+              "change": "The paper gives the finite-wire invariant a physical meaning as the parity of the number of reflection zeros in the lower half-plane. It shows that mirror-symmetric devices have every sign change, including the bulk transition, as an EP of reflectionless states with $E^4$ flat transmission. It also derives a conductance criterion: $Q=-1$ exactly when the zero-bias conductance exceeds $e^2/h$ (at zero temperature), and gives a fitting route at finite temperature.",
+              "limitations": "These are my own assessments, not statements of the authors, except where noted. The results rest on numerical models (a single-subband wire, a Kwant 2D strip, a Kitaev-chain model) and on no measured data. The conductance threshold needs one Majorana mode coupled to the lead and low temperature; the paper itself says the 45 mK Kitaev experiment is too warm and quasi-Majorana states with smooth barriers break the condition. The authors state that $Q=-1$ does not prove a protected phase or fix its gap, and that quasi-Majorana states can mimic it. Mirror symmetry is needed for the EP to coincide with the sign change, and disorder separates them; retuning one barrier restores the double zero in only 38 of 48 wires. Finite-temperature extraction of $Q$ was tested only on synthetic spectra."
+            },
+            "claims": [
+              {
+                "statement": "The invariant counts reflection zeros in the lower half-plane: $Q=(-1)^{N_-}$.",
+                "quote": "Hence\n\n $$Q\\equiv\\operatorname{sign}\\det r_{L}(0)=(-1)^{N_{-}},$$"
+              },
+              {
+                "statement": "In a finite wire, $Q=-1$ means the Majorana splitting is smaller than the geometric mean of the two lead couplings.",
+                "quote": "in a finite wire, $Q=-1$ states that the Majorana splitting is smaller than the geometric mean of the two couplings."
+              },
+              {
+                "statement": "With a single lead all zeros lie in the upper half-plane, so $Q=+1$ for any finite wire.",
+                "quote": "with a single lead ($\\Gamma_{R}=0$) every zero is the complex conjugate of a pole, all zeros lie in the upper half-plane, and $Q=+1$ for any finite wire [28, 29]."
+              },
+              {
+                "statement": "In a mirror-symmetric device every sign change of $Q$ is a double zero at $E=0$, regardless of the number of modes.",
+                "quote": "In a mirror-symmetric device every sign change of $Q$ is therefore a double zero at $E=0$, whatever the number of modes [54]"
+              },
+              {
+                "statement": "In the two-mode model with equal couplings the transmission of the Majorana channel is maximally flat.",
+                "quote": "$$T(E)=1-|\\det r_{L}(E)|^{2}=\\frac{4\\gamma^{4}}{E^{4}+4\\gamma^{4}},$$"
+              },
+              {
+                "statement": "At zero temperature $Q=-1$ exactly when the zero-bias conductance exceeds $e^2/h$, via a formula for the local conductance.",
+                "quote": "$$G_{LL}(E)=\\frac{e^{2}}{h}\\big[1-\\operatorname{Re}\\det r_{L}(E)\\big].$$"
+              },
+              {
+                "statement": "The first sign change in the 1D wire is at 0.8619 T, 1.9 mT below the bulk critical field, and at the first sign change $1-T_1$ grows as $E^4$ with a fitted exponent of 3.99 in both devices.",
+                "quote": "$B_{1}=0.8619$ T in the wire, $1.9$ mT below $B_{c}$, and at $0.8611$ T in the 2D device."
+              },
+              {
+                "statement": "Eq. (2) was verified at all tested settings of both device models.",
+                "quote": "Equation (2) holds at all 384 settings of the wire and 741 of the 2D device that we tested [54]."
+              },
+              {
+                "statement": "With unequal couplings the sign change and the EP separate, with the EP on the $Q=+1$ side.",
+                "quote": "The sign change occurs earlier, at $\\varepsilon=(\\gamma_{L}\\gamma_{R})^{1/2}$, when the lower zero passes through $E=0$ alone, so the EP lies on the $Q=+1$ side [Fig. 3(a)]."
+              },
+              {
+                "statement": "In disordered wires the sign-change and coalescence fields separate, and retuning one barrier restores the double zero in 38 of 48 wires.",
+                "quote": "in 48 disordered wires with equal barriers the two fields separate by up to $35$ mT, and retuning one barrier restores the double zero at $E=0$ in 38 of them [54]."
+              },
+              {
+                "statement": "Reading Q from zero-bias conductance requires low temperature; at the 45 mK of the Kitaev-chain experiment the peak stays below $e^2/h$.",
+                "quote": "Reading $Q$ from the zero-bias conductance requires $k_{B}T\\lesssim 0.2\\gamma$, about $5$ mK for this chain [54]."
+              },
+              {
+                "statement": "A negative Q does not prove a protected phase, and quasi-Majorana states can mimic it.",
+                "quote": "A negative $Q$ does not prove a protected phase or set the size of its gap, and quasi-Majorana states can mimic it [29]."
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-sonnet-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.16705": {
+          "arxiv_id": "2611.16705",
+          "detail": {
+            "explanation_lay": "A quantum point contact is a very narrow constriction that lets only a few electron 'lanes' pass. When it connects two superconductors, a current can flow with no voltage, carried by a few discrete channels. The authors build such a device in germanium-based layers (Ge/SiGe), using electric gates to squeeze the constriction and open lanes one at a time. They place the constriction in a loop with a much larger reference junction (a highly asymmetric SQUID). Sweeping a magnetic flux through the loop then reveals how the supercurrent depends on the phase difference across the constriction. The maximum supercurrent rises in steps that match the steps in normal-state conductance, so each opened channel adds its own share of supercurrent. The shape of the phase dependence lets the authors estimate how transparent each channel is, and they can tune this with the gate. The measured steps are about 5 nA, well below the ideal value of about 18 nA for a perfectly transparent channel. The authors attribute this to imperfect transmission, thermal effects and the way the junction switches, and they cannot separate these contributions. They also shine microwaves on the device. Depending on gate voltage they see different behaviors, including photon-assisted Andreev processes and Shapiro-like patterns, and the phase dependence changes in ways a simple adiabatic picture does not explain.",
+            "explanation_expert": "Setup: Ge/SiGe hole-gas heterostructure with PtSiGe superconducting contacts. A gate-defined SQPC (500 nm long, 100 nm gate width, device A) is embedded in a strongly asymmetric SQUID with a large reference junction (500 nm by 1.4 µm) whose switching current reaches 1.5 µA, so the reference junction's phase is approximately fixed and flux modulation of the switching current probes the SQPC CPR. Reference junction switching current is subtracted, measured with the SQPC depleted.\n\nNormal-state characterization at 700 mK shows three conductance plateaus at integers of $2e^2/h$ with subband spacing 2 meV. At base temperature the zero-bias conductance exceeds $50\\cdot 2e^2/h$ but remains finite, which the authors attribute to a high phase escape rate, so I_c cannot be read from I-V curves. The induced gap is extracted from conductance peaks near pinch-off ($\\Delta^*\\approx 55\\ \\mu$eV) and from MAR peaks at $V_G=-0.6$ V, fitted with $\\Delta^*(T)=\\Delta^*_0\\tanh(1.74\\sqrt{T_c/T-1})$, giving $\\Delta_0^*=76\\ \\mu$eV and $T_c=550$ mK.\n\nCPR analysis: the half peak-to-dip amplitude $\\Delta I^*_{SW}$ shows three plateaus matching the conductance plateaus. The CPR is fitted with a zero-temperature short-junction sum over three ABS, with $$I_{ABS}(\\varphi)=\\frac{e\\Delta}{2\\hbar}\\frac{\\tau\\sin\\varphi}{\\sqrt{1-\\tau\\sin^{2}(\\varphi/2)}}$$ and a gate-independent amplitude scale factor. The unconstrained fit yields one, two and three contributing modes on the successive plateaus, with transmissions increasing within each plateau. Supplementary fits give transmission above 75% per mode. The authors regard extracted $\\tau$ as lower bounds. Measured steps are about 5 nA versus $e\\Delta/\\hbar\\approx 18$ nA. They note that $\\tau=0.8$ would reduce the step to about 55% of the ideal value, with thermal ABS occupation and switching dynamics as further contributions. The CPR amplitude and skewness decrease with temperature, more strongly in the single-mode regime; measurements are limited below 200 mK. Switching statistics of the reference junction are not described by standard underdamped models, so no correction is made.\n\nMicrowaves (device B): the reference junction shows integer and half-integer Shapiro steps at 2.25 GHz. The SQPC shows power-dependent MAR splitting on the slope of the first plateau, zero-bias power dependence on the first and second plateau, and Shapiro replicas at low bias in the high-transmission regime. The CPR under irradiation at 2 and 11.5 GHz is compared with the adiabatic model $\\phi(t)=\\phi_0+2\\alpha\\cos(2\\pi ft)$, $I_{ad}=\\sum_n J_0(2n\\alpha)I_n\\sin(n\\phi)$. It reproduces the amplitude reduction but not the skewness evolution or the extra features near $\\phi=\\pi$, suggesting non-equilibrium ABS occupation.",
+            "context": {
+              "before": "Ballistic supercurrent quantization had been studied in atomic break junctions and gate-defined SQPCs, with critical-current steps analogous to conductance quantization. Ge/SiGe had emerged as a platform with highly transparent contacts, Andreev-enhanced conductance quantization, and microwave compatibility.",
+              "change": "The paper combines a Ge/SiGe SQPC with an asymmetric SQUID to read out the CPR, shows switching-current plateaus matching conductance quantization, and extracts gate-tunable effective transmissions of individual modes. It also reports microwave-driven MAR, Shapiro features and CPR changes beyond the adiabatic approximation.",
+              "limitations": "The measured steps (about 5 nA) are well below the ideal value (about 18 nA), and the authors cannot separate finite transmission, thermal ABS occupation and switching dynamics. The switching current underestimates the intrinsic critical current, and the switching statistics are not reproduced by standard models, so no quantitative correction is made. Fits use a zero-temperature short-junction model with three modes and a gate-independent scaling factor, so the transmissions are lower bounds and model-dependent. Measurements are limited below 200 mK. The microwave CPR changes are only qualitatively attributed to non-equilibrium ABS occupation, without a quantitative model. Gate hysteresis and shifts between cooldowns also affect comparisons. These are partly my own remarks as a referee, beyond what the authors state."
+            },
+            "claims": [
+              {
+                "statement": "The switching-current amplitude shows three plateaus matching the normal-state conductance plateaus.",
+                "quote": "Three distinct plateaus emerge, closely matching the conductance plateaus measured in the normal state."
+              },
+              {
+                "statement": "The induced gap and critical temperature were extracted from the temperature dependence of MAR peaks, giving 76 µeV and 550 mK.",
+                "quote": "Their temperature evolution (Fig. 2(d)) is used to extract both the induced superconducting gap $\\Delta_{0}^{*}=76\\ \\upmu\\text{eV}$ and the superconducting critical temperature $T_{\\mathrm{c}}=550\\ \\text{mK}$"
+              },
+              {
+                "statement": "The measured switching-current steps (about 5 nA) are smaller than the ideal short-junction value of about 18 nA.",
+                "quote": "The measured switching-current steps are approximately $5\\ \\text{nA}$, smaller than the ideal short-junction value of $e\\Delta/\\hbar\\approx 18\\ \\text{nA}$ expected for a perfectly transmitting mode, using the measured superconducting gap."
+              },
+              {
+                "statement": "The unconstrained three-mode fits reproduce the mode occupation of one, two and three modes on the successive plateaus.",
+                "quote": "Specifically, one mode contributes significantly on the first conductance plateau, two on the second, and three on the third."
+              },
+              {
+                "statement": "The extracted transmissions are regarded as lower bounds because other mechanisms affect the CPR shape.",
+                "quote": "the extracted values should be regarded as lower bounds on the actual channel transmissions."
+              },
+              {
+                "statement": "Reliable determination of the switching current from I-V curves was prevented by finite conductance, likely due to a high phase escape rate.",
+                "quote": "This prevents a reliable determination of the junction’s switching current from its current–voltage characteristics alone, most likely due to a high phase escape rate at zero-bias."
+              },
+              {
+                "statement": "Conventional models for underdamped junctions do not describe the reference junction's switching behavior, preventing a quantitative correction.",
+                "quote": "do not adequately describe the observed behavior, preventing a reliable quantitative correction, as discussed in SI Fig. S4."
+              },
+              {
+                "statement": "Half-integer Shapiro steps were observed in the reference junction at high microwave power, attributed in earlier work to highly transparent channels.",
+                "quote": "In addition to the integer multiples of $hf/2e$ (blue arrows), we observe half-integer plateaus for powers above $-20\\ \\text{dBm}$ (red arrows in Fig. 4(c))."
+              },
+              {
+                "statement": "The adiabatic model reproduces the CPR amplitude reduction under microwaves but not the skewness evolution or the additional features.",
+                "quote": "This model reproduces the measured reduction in CPR amplitude but does not account for the observed evolution of the skewness or the emergence of additional features."
+              },
+              {
+                "statement": "Supplementary CPR analysis on additional devices yields transmissions above 75% per mode.",
+                "quote": "Quantitative analysis of the skewness of the CPR yields transmission probabilities above 75% for each mode consistent with the behavior observed in Fig. 3."
+              },
+              {
+                "statement": "Temperature suppression of the CPR is stronger in the single-mode regime than in the three-mode regime.",
+                "quote": "The temperature dependence is particularly pronounced in the single-mode regime, where the signal is rapidly suppressed, whereas the three-mode regime appears more robust against thermal fluctuations."
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-sonnet-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.14615": {
+          "arxiv_id": "2611.14615",
+          "detail": {
+            "explanation_lay": "Repulsion between electrons can, in principle, glue them into pairs if a positively charged hole binds several electrons into a charge-2e composite particle, and these composites then condense into a superconductor. The problem is that, on a lattice, a tightly bound composite normally has to move through awkward intermediate steps that cost an energy comparable to the binding. The tighter the binding, the heavier the composite and the lower the superconducting transition temperature. The paper shows that symmetry can avoid this trade-off. In certain lattices a composite of three electrons and one hole can travel by single-particle hops that never deform it, each hop taking it to an exactly equivalent arrangement. The author calls this rolling, by analogy with a rigid body. The paper derives a symmetry criterion for rolling in two dimensions and uses it to construct fourteen minimal lattice models. For two of them it argues that the hole's kinetic energy can stabilize the composite. It maps the composite onto a model of bosons to estimate the transition temperature at about 1 to 3 percent of an electron hopping amplitude. Exact numerics on a dual-gate bilayer proposal give a few percent of the hopping. With moiré-like parameters this is about 0.5 K. The author suggests higher values might be possible in other settings.",
+            "explanation_expert": "Setup: a half-filled two-band picture in which a hole in the lower band binds three electrons from the upper band into a 3e1h composite of charge 2e. The orbitals are localized, so pair hopping is negligible. A generic composite then moves only through a two-step process with a deformed intermediate state costing about $E_b$. This gives an effective hopping of order $t^2/E_b$, a mass growing with binding, and a $T_c$ suppressed at strong binding. Rolling is motion through degenerate single-particle hops, each satisfying $PC=C_{x\\to y}$ for some lattice symmetry $P$ (a rolling operator of $C$). Sequences of rolling steps give $C_k=P_1P_2\\cdots P_k C_0$ with $P_j\\in\\mathcal{G}(C_0,L)$. Criterion: $C_0$ is 2D-rollable iff no point is fixed and no line is mapped onto itself by all elements of $\\mathcal{G}$. The proof uses the center of mass of the reachable set.\n\nConstruction: hole rolling operators must be symmetries of the 3e triangle, giving cases h1 (a $C_3$ rotation) and h2 (a single reflection). Electron rolling operators fix the hole position, so they are rotations about it or reflections through it, with strings of length 1 to 3. The analysis yields seven minimal configurations, ten minimal lattices and, after minimizing the hoppings, fourteen minimal lattice models. The Lieb and honeycomb-kagome lattices each give three models.\n\nStabilization: the Hamiltonian has hole and electron hopping, a hole gap, and $U$, $V$, $W$ interactions. In the triangle-kagome and AA-stacked triangle models, the kinetic energy of the hole is convex in net charge at 3e1h. This favors 3e1h over a 1:1 mixture of 2e1h and 4e1h.\n\nT_c estimate: the bonding state is projected onto a honeycomb boson model with $t_B=2t'/3$ (AA-stacked triangle) or $t'/3$ (triangle-kagome). The boson mass is $m_B=3\\hbar^2/(t'a^2)=27m_e$ or $6\\hbar^2/(t'a^2)=54m_e$. The hard-shell radius is $\\sigma\\approx2.2a$, and crystallization occurs at $n_B\\sigma^2\\simeq0.3$. With the BKT relation $T_c=\\pi\\hbar^2 n_s/(2m_B)$ and $n_s^*\\simeq0.8n_B$, this gives $T_c^*\\simeq0.38\\hbar^2/(m_B\\sigma^2)$. That is about 3% of $t'$ and about 1%, respectively.\n\nNumerics: exact diagonalization on a 48-site torus with dual-gate screened interactions ($V_0\\simeq4.9E_0$, $E_0\\simeq36$ meV). The extracted mass in regime II approaches about $25m_e$, versus the predicted $27m_e$. Wannier-projected boson ED on 96 sites finds a superfluid-to-crystal transition near $n_Ba^2\\simeq0.14$ and $T_c/t'$ of a few percent. The optimal $T_c\\simeq1.1\\times10^{-3}E_0$ (about 0.5 K for $a=10$ nm) lies within the controlled regime.",
+            "context": {
+              "before": "Repulsion-driven superconductivity was studied via Kohn-Luttinger, spin-fluctuation, RPA and exciton-type mechanisms. Composite-boson (3e1h) pairing was known to give a $T_c$ far below the electron bandwidth at strong binding, because of a binding-versus-mass tradeoff on lattices. Crab-like motion of bipolarons had been observed in specific cases.",
+              "change": "It identifies rolling as a symmetry-protected, deformation-free motion and derives a general rollability criterion. It enumerates fourteen minimal 3e1h lattice models. It argues that rollability removes the mass-binding tradeoff, so $T_c$ scales with the electron hopping. Boson-mapped estimates and exact numerics for a dual-gate bilayer give a few percent of $t'$.",
+              "limitations": "These are my assessments, not stated by the author, unless noted. The author does state that the boson mapping is valid only where the lowest two bands are gapped, and that the results are controlled only below the yellow line. The author also notes that realistic nearest-neighbor hopping competes with binding. Only spinless carriers and two of the fourteen models are studied energetically, and only one of them numerically. Stabilization needs a tuned 3:1 electron-hole ratio. The $T_c$ comes from a BKT estimate on a boson model, not from a direct fermionic calculation. The 48-site system is small, and the numerics rely on a normalization prescription for the two-boson states. The values 15 K and the hundred-kelvin range are extrapolations. Thermal and disorder effects and competing orders are not addressed, and no real material is identified."
+            },
+            "claims": [
+              {
+                "statement": "The paper proves a criterion for 2D rollability in terms of the set of rolling operators.",
+                "quote": "A composite pattern $C_{0}$ is 2D-rollable on a lattice $L$ if and only if no point is left in place by all elements of $\\mathcal{G}(C_{0},L)$ and no line is mapped onto itself by all of them.\\"
+              },
+              {
+                "statement": "The construction yields fourteen minimal lattice models, in which the Lieb and honeycomb-kagome lattices each contribute three models and the other eight lattices one each.",
+                "quote": "As a result, we arrive at the fourteen minimal lattice models presented in Fig. 12, where each of the Lieb lattice and the honeycomb-kagome lattice gives three models, each keeping two of its three electron hoppings, whereas each of the other eight lattices yields only one model.\\"
+              },
+              {
+                "statement": "In the triangle-kagome and AA-stacked triangle models, the hole's kinetic energy is convex at 3e1h and thus favors it over a 1:1 mixture of 2e1h and 4e1h.",
+                "quote": "where one finds that the energy as a function of net charge is convex at 3e1h.\\"
+              },
+              {
+                "statement": "The effective boson masses are 27 m_e (AA-stacked triangle) and 54 m_e (triangle-kagome).",
+                "quote": "$\\displaystyle m_{B}=\\frac{3\\hbar^{2}}{t^{\\prime}a^{2}}=27m_{e}\\ \\ \\text{(AA-stacked triangle)},$\\"
+              },
+              {
+                "statement": "The estimated optimal T_c is about 3% of t' in the AA-stacked triangle model and about 1% in the triangle-kagome model.",
+                "quote": "$T_{c}^{*}$ is about $3\\%$ of $t^{\\prime}$ in the AA-stacked triangle model and about $1\\%$ in the triangle-kagome model.\\"
+              },
+              {
+                "statement": "Exact diagonalization gives a composite mass of about 25 m_e in regime II as t'→0, close to the predicted 27 m_e, while larger composites show diverging mass.",
+                "quote": "In regime II we see that it approaches about $25m_{e}$ as $t^{\\prime}\\to 0$ at the left end of II, close to the $27m_{e}$ that Eq. (4) predicts for $t_{h}\\to 0$.\\"
+              },
+              {
+                "statement": "In the controlled regime of the dual-gate bilayer, the optimal T_c is about 1.1e-3 E_0, about 0.5 K for a=10 nm.",
+                "quote": "we find an optimal $T_{c}\\simeq 1.1\\times 10^{-3}E_{0}$, which is about $0.5$ K for a van der Waals system with $a=10$ nm.\\"
+              },
+              {
+                "statement": "The numerics show a superfluid-to-crystal transition near n_B a^2 ≈ 0.14 and T_c/t' a few percent that remains finite on extrapolation to t'→0.",
+                "quote": "We see that the superfluid-to-crystal transition typically occurs around $n_{B}a^{2}\\simeq 0.14$.\\"
+              },
+              {
+                "statement": "The author suggests that a higher T_c (about 15 K, or of order a hundred kelvin) may be possible in natural crystals with smaller lattice constants, but this is speculative and requires other screening mechanisms.",
+                "quote": "Provided that $t_{h}$ and $t^{\\prime}$ scale with $E_{0}$, the optimal $T_{c}$ rises by the same factor, to about $15$ K.\\"
+              },
+              {
+                "statement": "The boson mapping is valid only where the lowest two bands are separated from the third band by a gap at least equal to their width.",
+                "quote": "We take this to be the case where the direct band gap $\\Delta$ between the second band and the third band is at least the width $W$ of the two bands, which is the regime below the yellow line in Fig. 19(b).\\"
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-sonnet-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.17222": {
+          "arxiv_id": "2611.17222",
+          "detail": {
+            "explanation_lay": "When a crystal's atoms are driven to move in circles by circularly polarized infrared light, the moving ions act like tiny current loops and might make the material magnetic. Earlier experiments on materials such as SrTiO3 saw a huge rotation of the polarization of a probe light beam and read it as a very large magnetization. But the same rotation can also arise from a purely optical effect, in which pump and probe light mix in the crystal without any magnetism, so the rotation alone cannot settle the matter. The authors tested this in silicon carbide (6H-SiC). They measured the rotation inside the driven crystal, then did something different: they placed a thin gallium phosphide crystal right next to the driven crystal to act as a magnetic-field sensor. A real magnetization would leak a magnetic field outside the crystal, whereas the optical mixing effect would not. Inside the driven SiC they saw a sizable rotation, which could be read as anything from about 0.3 tesla down to a few microtesla depending on assumptions. Outside, they saw no field within their sensitivity. From this they conclude that the magnetization is below about a millitesla. Their conclusion is that a large rotation in an insulator does not imply a large magnetization, consistent with the original small theoretical estimates.",
+            "explanation_expert": "Setup: 6H-SiC (35 µm, c-cut) is driven by ~500 fs circularly polarized pulses at 25.8 THz, inside the Reststrahlen band of the doubly degenerate E1 mode (23.9 to 29.8 THz). Pump polarization purity is better than 95%. The Faraday-like rotation of an 800 nm probe is measured in reflection from the back surface (double pass), averaged over probe polarization angle to remove pump-induced linear birefringence, and half-differenced between pump helicities.\n\nAmbiguity: The antisymmetric part of $\\chi^{(3)}$, via the four-wave mixing process $\\omega=\\omega-\\Omega+\\Omega$, gives an off-diagonal $\\Delta\\epsilon_{ij}\\propto E^*\\times E$ once Kleinman symmetry breaks near the phonon resonance. It has the same symmetry as a magnetic term $\\Delta\\epsilon_{ij}=\\alpha_{ij}^{mag}M_z$. Helicity and fluence dependence therefore cannot separate the two (SI S1). The peak rotation is ~3 µrad with FWHM ~700 fs. Using the equilibrium Verdet constant (19 rad/T/m at 800 nm), this corresponds to $B_{eq}\\approx0.3$ T, so $\\mu_0M\\approx0.3$ T if one follows Ref. 4. Treating the phonons as an applied field instead gives $\\mu_0M\\approx|\\chi_{SiC}|B_{eq}\\approx4$ µT, with $\\chi=-1.3\\times10^{-6}$ from SQUID data. The rotation inside the driven volume therefore cannot fix $M$.\n\nStray-field magnetometry: A wedged ~60 µm GaP(100) Faraday detector (Verdet constant ~120 rad/T/m) sits on the unpumped side of the SiC, so only the double pass through the GaP is analysed. The SiC is thick enough to block the pump, and a linear-pump control showed no GaP birefringence signal. The pump fluence was ~40 mJ/cm². Noise is ~5 nrad per point after ~110 h of averaging, within a factor of unity of shot noise. Result: no helicity-dependent stray field above ~1 µT (10 nrad of rotation).\n\nCalibration: COMSOL time-dependent Maxwell simulations model a magnetized disk with diameter equal to the pump beam and thickness equal to the penetration depth. The magnetization is axial and follows the measured temporal profile. The stray field is averaged over the forward and return probe paths in the GaP. This gives a calibration of GaP rotation versus peak $\\mu_0M$. The result is $\\mu_0M<1$ mT, and 300 mT is excluded. For a magnetization peaking at 2 mT, the field peaks around 800 nT. Varying the assumed depth among 0.25, 0.5 and 0.75 µm rescales the bound by no more than a factor of two.\n\nConclusion: the bound is more than two orders of magnitude below the 0.3 T estimate, so large helicity-dependent rotation does not imply large magnetization.",
+            "context": {
+              "before": "Circular phonons were reported to produce large effective magnetic fields or magnetizations, for example in SrTiO3, where Faraday rotation implied magnetizations roughly four orders of magnitude above ionic-current estimates. Theory predicts small orbital moments of about 10^-4 Bohr magneton. Separately, it was argued that the nonlinear optical susceptibility $\\chi^{(3)}$ can mimic Faraday rotation without magnetism, so rotation measured inside the driven volume was ambiguous.",
+              "change": "It adds a direct, model-independent test: ultrafast stray-field magnetometry with a GaP Faraday detector next to the driven crystal. This bounds the magnetization of SiC at below 1 mT, against up to 0.3 T inferred from the rotation. The result supports the small theoretical estimates and shows that rotation inside the sample cannot calibrate magnetization.",
+              "limitations": "The result is for one material, 6H-SiC, an ordinary polar insulator, and one drive frequency. It does not directly show that the large signals in SrTiO3, KTaO3 or LiNbO3 are non-magnetic; the title's generality ('in insulators') is an extrapolation. The bound depends on a simplified model of the source (homogeneous disk, axial magnetization, assumed penetration depth, time profile copied from the optical rotation). The SiC data in the stray-field geometry were taken at a higher fluence (~40 mJ/cm²) than the in-sample rotation data (10 mJ/cm²), where the response is already saturating. Magnetization that is very short-lived, or not along the pump axis, would be differently sensitive. The detector also averages over 60 µm and has ~1 ps resolution. The authors do not separate the four-wave mixing contribution quantitatively, and the optical origin of the rotation is argued by symmetry rather than demonstrated experimentally. These caveats are the editor's reading, not the authors'."
+            },
+            "claims": [
+              {
+                "statement": "The in-sample helicity-dependent polarization rotation in SiC peaks at about 3 µrad with a FWHM of about 700 fs.",
+                "quote": "Upon\tphoto-excitation\ta\ttime-dependent\tpolarization\trotation\tsignal\twas\tobserved,\tpeaking\tat\t~3\tµrad."
+              },
+              {
+                "statement": "No pump-induced stray magnetic field was resolved in the GaP detector, with uncertainty better than 1 µT, corresponding to a rotation of 10 nrad.",
+                "quote": "No\tpump-induced\tmagnetic\tstray\tfield\twas\tresolved\twithin\tan\texperimental\tuncertainty\tof\tbetter\tthan\t1\tµT,\tcorresponding\tto\ta\tFaraday\trotation\tof\t10\tnrad\tfor\tthe\tspecific\tdetector\tthickness\tconsidered\there"
+              },
+              {
+                "statement": "The stray-field measurement sets an upper bound on the phonon-induced magnetization of 1 mT, and a magnetization of 300 mT is excluded.",
+                "quote": "The\texperimental\tuncertainty\tsets\tan\tupper\tbound\tfor\tthe\tphonon-induced\tmagnetization\tof"
+              },
+              {
+                "statement": "Attributing the rotation purely to the magnetic Faraday effect with the equilibrium Verdet constant gives an equivalent field of about 0.3 T.",
+                "quote": "one\textracts\ta\tresponse\tequal\tin\tmagnitude\tto\tthat\tachieved\tby\ta\tlarge\tequivalent\tmagnetic\tfield"
+              },
+              {
+                "statement": "The four-wave mixing contribution cannot be distinguished from magnetic Faraday rotation by helicity or fluence dependence, since both reverse sign with pump helicity and scale with the pump intensity.",
+                "quote": "Hence,\tneither\tthe\tfluence\tnor\tthe\thelicity\tdependence\tcan\tdiscriminate\tbetween\tthe\ttwo\teffects."
+              },
+              {
+                "statement": "Varying the assumed pump penetration depth changes the magnetization upper bound by no more than a factor of two.",
+                "quote": "changing\tthe\tassumption\tof\tthe\tpenetration\tdepth\tbetween\tthese\tvalues\trescales\tthe\tupper\tbound\tgiven\tfor\tthe\tphonon\tgenerated\tmagnetization\tby\tno\tmore\tthan\ta\tfactor\tof\ttwo"
+              },
+              {
+                "statement": "The stray-field data required about 110 hours of acquisition and reached a noise level within a factor of unity of shot noise.",
+                "quote": "the\ttotal\tacquisition\ttime\twas\t~110\thours\t(~9\thours/point)."
+              },
+              {
+                "statement": "The in-sample polarization rotation was measured with the pump at 10 mJ/cm2, and the stray-field data used about 40 mJ/cm2.",
+                "quote": "circularly\tpolarized\tpump\tpulses\twith\ta\tfluence\tof\t~40\tmJ/cm2."
+              },
+              {
+                "statement": "The authors conclude that a large polarization rotation in an insulator does not imply a comparably large magnetization.",
+                "quote": "does\tnot\timply\ta\ncomparably\tlarge\tmagnetization,\tvalidating\tthe\toriginal\ttheoretical\testimates."
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "pdf",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-sonnet-5-5",
+          "prompt_version": "9a32231007"
+        }
+      },
+      "n_done": 4,
+      "stats": {
+        "calls": 4,
+        "input": 104888,
+        "output": 14194,
+        "usd": 0.35171600000000003
+      }
+    },
+    {
+      "label": "haiku",
+      "model": "claude-haiku-5-5",
+      "outcomes": {
+        "2611.17001": {
+          "arxiv_id": "2611.17001",
+          "detail": {
+            "explanation_lay": "Majorana modes are proposed zero-energy states at the ends of superconducting wires, and they are candidates for storing quantum information. Experiments have struggled because ordinary trapped states can produce the same zero-voltage conductance peak. This paper asks what a transport measurement through a finite device can actually certify about its topology. The author builds on a known sign, usually called Q, which is set by how electrons are reflected at zero energy. He shows that this sign counts special resonances, called reflection zeros. A reflection zero is a state that accepts an electron from one contact and passes it entirely to the other contact, sending nothing back. Q is negative when an odd number of these zeros lie on one side of the energy plane. In a finite wire, a negative Q means the two end Majorana modes are split by less than their coupling to the contacts. With symmetric contacts, each change of sign happens when two zeros merge at zero energy, which gives perfectly flat transmission. The paper also argues that the sign can be read from the zero-bias conductance, since Q is negative exactly when that conductance exceeds one conductance quantum, e squared over h, at zero temperature. The author notes that this does not prove a protected phase, and that quasi-Majorana states can mimic the signal.",
+            "explanation_expert": "The paper studies a finite superconducting wire of Bogoliubov-de Gennes Hamiltonian H, in class D, attached to normal leads L and R with wide-band couplings. The scattering matrix is S(E) = 1 - 2 pi i W^dagger (E - H + i Gamma/2)^{-1} W, with time dependence exp(-iEt/hbar), so resonances (poles) lie in the lower half-plane. The reflection block of lead L satisfies det r_L(E) = det(E - H_Z)/det(E - H_P), where H_{P,Z} = H minus or plus (i/2) Gamma_L, minus (i/2) Gamma_R. Poles are eigenvalues of H_P, where both leads drain the wire. Zeros are eigenvalues of H_Z, where lead L feeds the wire like a gain and lead R drains it.\n\nThe central counting rule uses a Majorana basis, where particle-hole symmetry makes H = iA with A real antisymmetric and the Gamma matrices real. Then H_{P,Z} = iM_{P,Z} with real M matrices. At E = 0, det r_L(0) = det M_Z / det M_P. The pole factor carries a fixed positive sign, because both leads drain the wire. Zeros z = i lambda are symmetric under z to -z*. Off-axis pairs contribute positive factors |z|^2, while each zero on the negative imaginary axis contributes a negative factor. Hence Q = sign det r_L(0) = (-1)^{N_-}, where N_- counts zeros with Im z < 0. Q changes only when a zero crosses E = 0 along the imaginary axis.\n\nFor two Majorana modes with splitting epsilon and rates gamma_L, gamma_R, one obtains det M_Z = epsilon^2 - gamma_L gamma_R, so Q = sign(epsilon^2 - gamma_L gamma_R). With mirror symmetry, two zeros meet at E = 0 at each sign change, forming a double zero. The two-mode transmission is T(E) = 1 - |det r_L(E)|^2 = 4 gamma^4/(E^4 + 4 gamma^4) for equal couplings, a second-order Butterworth response. The local conductance satisfies G_LL(E) = (e^2/h)[1 - Re det r_L(E)] when lead L couples through one Majorana mode. At zero temperature, Q = -1 exactly when G_LL(0) exceeds e^2/h.\n\nNumerical checks use an InAs/Al single-subband wire of length 3 micrometres, with bulk critical field B_c = 0.864 T, and a 2D Kwant device. Equation (2) was checked at 384 wire settings and 741 2D settings. The first sign change occurs at B_1 = 0.8619 T in the wire, and 1-T_1 scales as E^4 with fitted exponent 3.99. The authors note that unequal couplings separate the sign change from the exceptional point, and that disorder can do the same.",
+            "context": {
+              "before": "Majorana modes in topological superconducting wires were proposed as protected qubits, and conductance peaks at zero bias were reported as their signature. Trivial bound states and quasi-Majorana states can produce similar peaks, and the topological gap protocol and minimal Kitaev chains have not resolved the ambiguity. In a long wire, the sign of the electron reflection at zero energy labels the topological phase. For a finite wire, earlier work showed that a single lead always gives Q = +1 and that two leads give a sign set by the Majorana splitting and couplings. Exceptional points of non-Hermitian scattering and reflectionless states had been studied in photonics, and reflection zeros had been related to topology in Josephson junctions.",
+              "change": "The paper shows that Q equals (-1) raised to the number of reflection zeros below the real axis, so Q counts reflectionless states of the finite device. It identifies each sign change of Q with a double zero at zero energy, which is an exceptional point with maximally flat transmission in mirror-symmetric devices. It gives a conductance criterion, under which Q = -1 exactly when the zero-temperature zero-bias local conductance exceeds e^2/h, and checks the rule numerically in two device models.",
+              "limitations": "The conductance threshold assumes that one Majorana mode carries the coupling to the lead and that the thermal energy is below the smallest width, and the paper states these conditions. Per the paper's own examples, quasi-Majorana states can violate the second condition. The counting rule and the exceptional-point result are stated for mirror-symmetric devices, while unequal couplings and disorder move the sign change away from the exceptional point. The results come from numerical models with wide-band leads and specific parameters, not from measured data. The paper does not prove a protected phase, and a negative Q does not set the gap size. The data are available only on request. A referee would also ask whether the claimed novelty ('for the first time') is fully supported given related earlier work on reflection zeros and exceptional points cited by the authors."
+            },
+            "claims": [
+              {
+                "statement": "The invariant Q equals (-1) raised to the number of reflection zeros in the lower half-plane, which is derived from the sign of the zeros of det r_L(0).",
+                "quote": "Zeros off the imaginary axis form such pairs and contribute $|z|^{2}>0$ to $\\det M_{Z}$, whereas every zero on the negative imaginary axis contributes a negative factor."
+              },
+              {
+                "statement": "In a mirror-symmetric device every sign change of Q is a double zero at E = 0, whatever the number of modes.",
+                "quote": "In a mirror-symmetric device every sign change of $Q$ is therefore a double zero at $E=0$, whatever the number of modes [54]"
+              },
+              {
+                "statement": "Equation (2) was tested at 384 settings of the wire and 741 settings of the 2D device.",
+                "quote": "Equation (2) holds at all 384 settings of the wire and 741 of the 2D device that we tested [54]."
+              },
+              {
+                "statement": "The first sign change of Q occurs at B_1 = 0.8619 T in the wire, 1.9 mT below the bulk critical field, and at 0.8611 T in the 2D device.",
+                "quote": "the first sign change of $Q$, at $B_{1}=0.8619$ T in the wire, $1.9$ mT below $B_{c}$, and at $0.8611$ T in the 2D device."
+              },
+              {
+                "statement": "The bulk critical field of the wire is B_c = 0.864 T, above which an infinite wire is topological.",
+                "quote": "A magnetic field $B$ along the wire closes and reopens its bulk gap at $B_{c}=0.864$ T, above which an infinite wire is topological."
+              },
+              {
+                "statement": "The reflection of the most open channel near the first sign change scales as E^4, with a fitted exponent of 3.99 in both devices.",
+                "quote": "with a fitted exponent of $3.99$ in both devices"
+              },
+              {
+                "statement": "At zero temperature, Q = -1 exactly when the zero-bias local conductance exceeds e^2/h.",
+                "quote": "At $E=0$ and zero temperature, $Q=-1$ exactly when $G_{LL}(0)>e^{2}/h$, half the quantized value $2e^{2}/h$ of an isolated Majorana mode [30]."
+              },
+              {
+                "statement": "In the 2D and wire simulations, G_LL(0) exceeds e^2/h exactly where Q = -1, at all 741 settings of the 2D device.",
+                "quote": "at all 741 settings of the 2D device $G_{LL}(0)>e^{2}/h$ exactly where $Q=-1$ [54]"
+              },
+              {
+                "statement": "For a finite wire with two Majorana modes, Q = -1 means the Majorana splitting is smaller than the geometric mean of the two couplings.",
+                "quote": "In a finite wire, $Q=-1$ states that the Majorana splitting is smaller than the geometric mean of the two couplings."
+              },
+              {
+                "statement": "With equal contacts, every sign change of Q, including the bulk topological transition, is an exceptional point at which two reflectionless states merge and transmission is maximally flat.",
+                "quote": "With equal contacts, every sign change of $Q$, including the bulk topological transition, is an exceptional point at which two such states merge and transmission is maximally flat."
+              },
+              {
+                "statement": "For a single lead, Q = +1 for any finite wire, since every zero is the complex conjugate of a pole.",
+                "quote": "Probed through one lead it always has $Q=+1$ [28, 29]"
+              },
+              {
+                "statement": "In disordered wires with equal barriers, the two fields separate by up to 35 mT, and retuning one barrier restores the double zero at E = 0 in 38 of 48 wires.",
+                "quote": "in 48 disordered wires with equal barriers the two fields separate by up to $35$ mT, and retuning one barrier restores the double zero at $E=0$ in 38 of them [54]."
+              },
+              {
+                "statement": "Reading Q from synthetic spectra at 20 mK recovered the sign of Q at all 20 fields tested.",
+                "quote": "they recover the sign of $Q$ at all 20 fields tested [54]"
+              },
+              {
+                "statement": "In a wire of 6 micrometres with a smooth quasi-Majorana barrier, the zero-bias peak at 20 mK exceeds e^2/h from 0.675 T on, while Q = +1 up to 0.845 T, showing that the conductance threshold can fail for quasi-Majorana states.",
+                "quote": "the zero-bias peak at $20$ mK exceeds $e^{2}/h$ from $0.675$ T on"
+              },
+              {
+                "statement": "The conductance threshold assumes that one Majorana mode carries the coupling to the lead and that the thermal energy is below the smallest width.",
+                "quote": "The threshold assumes that one Majorana mode carries the coupling to the lead and that the thermal energy $k_{B}T$ is below the smallest width."
+              },
+              {
+                "statement": "A negative Q does not prove a protected phase or set the size of its gap, and quasi-Majorana states can mimic it.",
+                "quote": "A negative $Q$ does not prove a protected phase or set the size of its gap, and quasi-Majorana states can mimic it [29]."
+              },
+              {
+                "statement": "Equation (2) relies only on particle-hole symmetry and the positivity of the lead couplings, so it applies to multimode wires and devices with several leads.",
+                "quote": "Equation (2) relies only on particle-hole symmetry and on the positivity of the lead couplings, so it applies equally to multimode wires, longer Kitaev chains [23], and devices with several leads."
+              },
+              {
+                "statement": "The Majorana channel carries heat but almost no charge.",
+                "quote": "The Majorana channel carries heat [24, 54] but almost no charge"
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-haiku-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.16705": {
+          "arxiv_id": "2611.16705",
+          "detail": {
+            "explanation_lay": "Superconductors carry electrical current with no resistance, and in very narrow connections the current can pass through only a small number of separate lanes. This paper studies a tiny superconducting bridge built in a germanium-silicon semiconductor, where a gate voltage squeezes the number of open lanes. The researchers made this bridge one arm of a loop that also contains a second, much stronger junction. Measuring how the loop's maximum current changes with a magnetic flux through it reveals how the current varies with the phase difference across the narrow bridge. The team found that the steps in this maximum current appear at the same gate voltages where the normal-state conductance rises in steps, linking the lanes seen in ordinary transport to the superconducting response. Tuning the gate also changed how easily each lane transmits current, and the current-phase shape became more strongly skewed for highly transmitting lanes. When microwaves were applied, the team observed features tied to photon-assisted electron transfer and to the quantized voltage steps known from driven Josephson junctions. The paper's switching currents are smaller than the ideal value and the authors say the measurements do not give the intrinsic critical current, so the step heights should be read as qualitative. The work positions germanium-based devices as a controllable platform for studying superconducting current carried by a few well-transmitting channels.",
+            "explanation_expert": "The paper reports a gate-defined superconducting quantum point contact (SQPC) in a Ge/SiGe heterostructure, with a two-dimensional hole gas in a compressively strained Ge quantum well and PtSiGe superconducting contacts. The SQPC (500 nm long, 100 nm gate width in device A) is embedded as one arm of a highly asymmetric SQUID whose other arm is a wider reference junction. Because the reference junction's switching current greatly exceeds that of the SQPC, the SQUID's switching current, after subtracting the reference value, tracks the current-phase relation (CPR) of the SQPC as a function of the flux bias. Normal-state transport at 700 mK shows conductance plateaus at integer multiples of $2e^{2}/h$, with odd multiples at finite bias, and a subband spacing reported in the text. At base temperature the zero-bias conductance is strongly enhanced, but the voltage-biased switching current could not be reliably extracted, so the authors used a ramped current-bias method with switching-current distributions.\n\nThe induced gap is obtained in two ways. Near the onset of the first plateau, conductance peak spacing gives a gap of about 55 µeV. At lower gate voltage, where multiple Andreev reflection (MAR) resistance peaks are visible, the temperature evolution of the first three MAR orders is fitted with the BCS form $\\Delta^{*}(T)=\\Delta^{*}_{0}\\tanh(1.74\\sqrt{T_{c}/T-1})$, giving $\\Delta_{0}^{*}=76$ µeV and $T_{c}=550$ mK.\n\nTo model the CPR, the authors use the zero-temperature short-junction expression for a single Andreev bound state, $I_{\\mathrm{ABS}}(\\varphi)=\\frac{e\\Delta}{2\\hbar}\\frac{\\tau\\sin\\varphi}{\\sqrt{1-\\tau\\sin^{2}(\\varphi/2)}}$, summed over occupied states with three transmissions $\\tau_n$ and a gate-independent amplitude factor. The fitted amplitude plateaus match the conductance plateaus, and the fitted transmissions rise as the gate is made more negative, which the authors interpret as continuous gate tuning of each mode. The measured steps (about 5 nA) are well below the ideal $e\\Delta/\\hbar$ value of about 18 nA, which the authors attribute to finite transmission, thermal occupation of excited ABSs, and switching dynamics. Microwave measurements on device B at 2 to 11.5 GHz show Shapiro and half-integer steps on the reference junction and MAR-like and Shapiro-replica features on the SQPC. The CPR under drive is compared with an adiabatic model using Bessel-function renormalization, which reproduces the amplitude reduction but not the skewness changes, suggesting non-equilibrium ABS occupation.",
+            "context": {
+              "before": "Ballistic superconducting transport had been studied in atomic break junctions and in gate-defined superconducting quantum point contacts in other material systems. Controlled occupation of discrete modes was known to produce steps in the critical current, analogous to normal-state conductance quantization, and short-junction theory predicts an ideal step of order e times the gap over hbar. Ge/SiGe heterostructures had been proposed and used as hybrid superconductor-semiconductor platforms with PtSiGe contacts, and earlier Ge/SiGe work had reported Andreev-enhanced conductance quantization and microwave compatibility, as cited in the paper.",
+              "change": "The paper combines normal-state conductance quantization, switching-current quantization and CPR measurements in the same gate-defined Ge/SiGe SQPC, using an asymmetric SQUID to access the CPR. It reports that the switching-current plateaus follow the conductance plateaus, that fitted channel transmissions vary continuously with gate voltage within each plateau, and that microwave irradiation produces photon-assisted MAR features, Shapiro replicas and CPR changes beyond the adiabatic model.",
+              "limitations": "The authors state that the measured switching-current steps are smaller than the ideal value and that the switching current is an underestimate of the intrinsic critical current because of switching dynamics, with no reliable quantitative correction; they also state that the extracted transmissions should be regarded as lower bounds. Points a careful referee would raise, which are my own assessment: the CPR fits assume a short-junction model with three modes and a free amplitude factor, so the transmission values depend on this model; the device-to-device gap values differ (device C gap from spectroscopy is about 30 µeV versus about 55 µeV in device A); the sample set is small, with mostly one device for the main data and different gate ranges and cooldowns for the others; the microwave interpretation is qualitative and the mechanism of the additional CPR features is not identified; and the switching statistics are not reproduced by standard underdamped models, so the damping regime is unresolved."
+            },
+            "claims": [
+              {
+                "statement": "Three conductance plateaus were observed in source-drain bias spectroscopy of the SQPC at 700 mK.",
+                "quote": "Three conductance plateaus were observed (Fig. 1(c))."
+              },
+              {
+                "statement": "The zero-bias conductance plateaus correspond to integers of 2e^2/h.",
+                "quote": "The zero-bias conductance plateaus correspond to integers of $2e^{2}/h$ (Fig. 1(d))."
+              },
+              {
+                "statement": "The induced gap extracted from conductance peaks near the onset of the first plateau is about 55 µeV.",
+                "quote": "In this regime, the superconducting gap is extracted from the position of the conductance peaks, yielding $\\Delta^{*}\\approx 55\\ \\upmu\\text{eV}$ (Fig. 2(b))."
+              },
+              {
+                "statement": "The temperature dependence of MAR peaks gives an induced gap of 76 µeV and a critical temperature of 550 mK, using a BCS-type fit.",
+                "quote": "is used to extract both the induced superconducting gap $\\Delta_{0}^{*}=76\\ \\upmu\\text{eV}$ and the superconducting critical temperature $T_{\\mathrm{c}}=550\\ \\text{mK}$ by fitting the BCS relation [80]"
+              },
+              {
+                "statement": "The CPR data are fitted assuming three modes with variable transmission.",
+                "quote": "The data is fitted assuming three modes with variable transmission."
+              },
+              {
+                "statement": "The unconstrained three-mode fits reproduce the mode occupation inferred from normal-state conductance quantization: one mode on the first plateau, two on the second, and three on the third.",
+                "quote": "Specifically, one mode contributes significantly on the first conductance plateau, two on the second, and three on the third."
+              },
+              {
+                "statement": "The measured switching-current steps are about 5 nA, smaller than the ideal short-junction value of about 18 nA for a perfectly transmitting mode.",
+                "quote": "The measured switching-current steps are approximately $5\\ \\text{nA}$, smaller than the ideal short-junction value of $e\\Delta/\\hbar\\approx 18\\ \\text{nA}$ expected for a perfectly transmitting mode, using the measured superconducting gap."
+              },
+              {
+                "statement": "The switching current measured is an underestimate of the intrinsic critical current because of switching dynamics, and no reliable quantitative correction was possible.",
+                "quote": "Additionally, the measurement of the switching current is an underestimate of the intrinsic critical current because of the junctions’ switching dynamics."
+              },
+              {
+                "statement": "The extracted transmissions should be regarded as lower bounds on the actual channel transmissions.",
+                "quote": "the extracted values should be regarded as lower bounds on the actual channel transmissions."
+              },
+              {
+                "statement": "Half-integer Shapiro-type plateaus were observed on the reference junction for powers above -20 dBm at 2.25 GHz.",
+                "quote": "In addition to the integer multiples of $hf/2e$ (blue arrows), we observe half-integer plateaus for powers above $-20\\ \\text{dBm}$ (red arrows in Fig. 4(c))."
+              },
+              {
+                "statement": "The adiabatic model reproduces the measured reduction in CPR amplitude but does not account for the observed evolution of the skewness or the emergence of additional features under microwave drive.",
+                "quote": "This model reproduces the measured reduction in CPR amplitude but does not account for the observed evolution of the skewness or the emergence of additional features."
+              },
+              {
+                "statement": "The authors suggest that non-equilibrium ABS occupations play an important role in the microwave-induced CPR changes.",
+                "quote": "This suggests that non-equilibrium ABS occupations play an important role [78, 27]."
+              },
+              {
+                "statement": "Device C yields a comparable induced gap of about 30 µeV from tunneling spectroscopy, and MAR-based values of 82 µeV and 560 mK.",
+                "quote": "The tunneling spectroscopy reveals a comparable induced superconducting gap of $\\Delta^{*}\\approx 30\\ \\upmu\\text{eV}$, while the temperature evolution of the MAR features yields values of $\\Delta^{*}=82\\ \\upmu\\text{eV}$ and $T=560\\ \\text{mK}$"
+              },
+              {
+                "statement": "Monte Carlo simulations based on a model for moderately damped Josephson junctions do not quantitatively reproduce the measured switching distributions.",
+                "quote": "Monte Carlo simulations based on a model for moderately damped Josephson junctions do not quantitatively reproduce the measured switching distributions [26, 47, 30]."
+              },
+              {
+                "statement": "Quantitative analysis of the CPR skewness yields transmission probabilities above 75% for each mode in the second cooldown of device A and in devices B and C.",
+                "quote": "Quantitative analysis of the skewness of the CPR yields transmission probabilities above 75% for each mode consistent with the behavior observed in Fig. 3."
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-haiku-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.14615": {
+          "arxiv_id": "2611.14615",
+          "detail": {
+            "explanation_lay": "Superconductors carry electricity without resistance, and most known ones have a critical temperature far below the energy scale of the electrons that move in them. This paper asks whether the electrons' own mutual repulsion can help create superconductivity with a critical temperature set by the electrons' kinetic energy. The idea is to bind three electrons to one positively charged gap, called a hole, in a material. Each bound cluster carries twice the electron charge and behaves like a boson, and bosons can condense into a superconducting state. The difficulty is that a tightly bound cluster normally moves only by a slow, roundabout sequence of hops, which makes it heavy and suppresses the critical temperature. The author shows that certain crystal symmetries let the cluster move by ordinary single-particle hops that keep its shape unchanged, a motion he calls rolling. He classifies the minimal lattice models that allow rolling and finds fourteen. For one realistic design, a dual-gated bilayer of transition-metal dichalcogenides, exact numerical calculations estimate a critical temperature of a few percent of the electron hopping energy. These are theoretical predictions for idealized models, and no experiment has yet tested them.",
+            "explanation_expert": "The paper studies a two-band lattice in which a hole in the filled band binds three electrons in the empty band, forming a charge-2e boson, the 3e1h composite. In the strong-binding regime the composite's effective hopping is usually of order $t^{2}/E_{b}$, so its mass grows with binding energy and the superfluid stiffness, which sets $T_{c}$ through the BKT relation $T_{c}=\\pi\\hbar^{2}n_{s}/(2m_{B})$, is suppressed. The author argues that on lattices with suitable symmetry, the composite can move through single-particle degenerate hops that leave its shape unchanged. He calls this rolling. A configuration is 2D-rollable if no point is fixed by all rolling operators and no line is mapped onto itself by all of them. The rolling operators are lattice symmetries that map the composite pattern onto a pattern differing by one particle. Classifying the three-electron and hole symmetries yields seven minimal configurations and ten minimal lattices. Two of these lattices yield three models each by dropping one redundant hopping, giving fourteen minimal models in total.\n\nFor the triangle-kagome and AA-stacked triangle models, the hole's kinetic energy in the $n$e1h composite is shown to be convex at $n=3$, which favours 3e1h over a 1:1 mixture of 2e1h and 4e1h. In the small $t_{h}$ and $t^{\\prime}$ limit, the boson mass is $m_{B}=3\\hbar^{2}/(t^{\\prime}a^{2})=27m_{e}$ for AA-stacked triangle and $6\\hbar^{2}/(t^{\\prime}a^{2})=54m_{e}$ for triangle-kagome. The bosons have a hard core of radius about $1.3a$ and a hard shell of radius about $2.2a$, and crystallization is taken at $n_{B}\\sigma^{2}\\simeq 0.3$. Using a Monte Carlo superfluid fraction, the author obtains $T_{c}^{*}\\simeq 0.38\\hbar^{2}/(m_{B}\\sigma^{2})$, about 3 percent of $t^{\\prime}$ for AA-stacked triangle and about 1 percent for triangle-kagome.\n\nFor the dual-gate bilayer with $a=10$ nm, exact diagonalization on a 48-site torus, followed by a mapping to an extended Hubbard model of bosons on a 96-site honeycomb lattice, gives an optimal $T_{c}$ of about $1.1\\times 10^{-3}E_{0}$ in the controlled regime. The mapping is valid only where the composite bands are isolated by a gap larger than their width.",
+            "context": {
+              "before": "Conventional strong-coupling theories, such as Eliashberg-type and bipolaron frameworks, tie $T_c$ to the bandwidth of the pairing interaction. Coulomb repulsion acts over the full electron bandwidth but is repulsive, so proposals to turn it into pairing include the Kohn-Luttinger mechanism, RPA-based spin and plasmon fluctuation approaches, and exciton-mediated attraction. Within the exciton route, a hole bound to electrons forms a composite boson, and earlier work noted that the resulting $T_c$ falls well below the electron bandwidth at strong binding. The paper states that in the moire and rhombohedral graphene platforms the observed $T_c$ is at most a few kelvin. Rolling-like motion had been reported for bipolarons, where one electron pivots around another (crab motion), and for pairs bound by intersite attraction in extended Hubbard models.",
+              "change": "The paper identifies a symmetry criterion for rolling of multi-particle composites: a composite is 2D-rollable when no point is fixed by all its rolling operators and no line is mapped onto itself by all of them. It classifies minimal lattice models that host rollable 3e1h composites, fourteen in total. It argues that in two of these models the hole kinetic energy stabilizes the 3e1h composite against competing clusters. It estimates a $T_c$ proportional to the hopping $t^{\\prime}$ and, for a dual-gate bilayer, supports this with exact numerics showing $T_c$ of a few percent of $t^{\\prime}$.",
+              "limitations": "Limitations stated by the author include: the analysis assumes well-localized orbitals so that pair hopping is negligible, and it assumes spinless electrons and holes; the $T_c$ estimate uses an asymptotic small-$t_h$ and small-$t^{\\prime}$ mass and a BKT relation, and the mass is noted to be asymptotic. The numerical mapping is valid only where the composite bands are isolated, and the optimal $T_c$ lies at the edge of this controlled regime, with the author saying it cannot be safely extrapolated beyond it. Electron nearest-neighbor hopping $t$ is omitted from the minimal models and is said to compete with binding. The phase boundaries in the minimal models are sharp only because nearest-neighbor electron hopping is absent. Points a careful referee would raise (my own assessment): the stabilization analysis relies on specific models and on a limited set of competitors; the numerics use a small 48-site torus; the Tc value depends on a Monte Carlo superfluid fraction taken from a hard-disk system and on the chosen boson interaction model; the Wannier-based boson interaction construction is heuristic; and no experimental test is presented."
+            },
+            "claims": [
+              {
+                "statement": "The paper states that it shows symmetry offers a way around the binding-versus-mass tradeoff on a lattice.",
+                "quote": "Here, we show that symmetry offers a way around this tradeoff."
+              },
+              {
+                "statement": "The paper reports a total of fourteen minimal lattice models that support 2D-rollable 3e1h composites.",
+                "quote": "Eventually, we find in total 14 minimal lattice models"
+              },
+              {
+                "statement": "In the strong-binding regime on a generic lattice, the composite moves through a two-step process with effective hopping of order t squared over the binding energy, making it heavy.",
+                "quote": "This composite thus can only move through a two-step process with a deformed intermediate state, so its effective hopping is only of order $t^{2}/E_{b}$"
+              },
+              {
+                "statement": "The paper reports boson mass factors of 27 and 54 electron masses for the AA-stacked triangle and triangle-kagome models in the small-hopping limit.",
+                "quote": "These big factors 27 and 54 should be understood as follows."
+              },
+              {
+                "statement": "The paper states that the mass estimate is an asymptotic result in the small-t_h and small-t' limit.",
+                "quote": "We note that the mass estimated above is an asymptotic result in the small-$t_{h}$ and small-$t^{\\prime}$ limit."
+              },
+              {
+                "statement": "The estimated optimal Tc is about 3 percent of t' for the AA-stacked triangle model and about 1 percent for the triangle-kagome model.",
+                "quote": "With the masses of Eqs. (4) and (5) and these values of $\\sigma$, $T_{c}^{*}$ is about $3\\%$ of $t^{\\prime}$ in the AA-stacked triangle model and about $1\\%$ in the triangle-kagome model."
+              },
+              {
+                "statement": "The hard core radius is about 1.3a and arises because two nearby composites cannot share an orbital.",
+                "quote": "The hard core with a radius of $\\sigma_{0}\\approx 1.3a$ exists because two nearby composites cannot share an orbital."
+              },
+              {
+                "statement": "The paper takes the crystallization threshold for hard-disk bosons to be n_B sigma squared approximately 0.3, citing prior work.",
+                "quote": "For bosons that repel as hard disks of diameter $\\sigma$, crystallization happens at $n_{B}\\sigma^{2}\\simeq 0.3$ [88]."
+              },
+              {
+                "statement": "The maximal superfluid density just below Tc is estimated as about 0.8 times the boson density, from Monte Carlo results of a prior reference.",
+                "quote": "we get a maximal superfluid density $n_{s}^{*}\\simeq 0.8n_{B}$ just below $T_{c}$."
+              },
+              {
+                "statement": "The paper states the rollability criterion: a composite pattern is 2D-rollable on a lattice if and only if no point is left in place by all of its rolling operators and no line is mapped onto itself by all of them.",
+                "quote": "A composite pattern $C_{0}$ is 2D-rollable on a lattice $L$ if and only if no point is left in place by all elements of $\\mathcal{G}(C_{0},L)$"
+              },
+              {
+                "statement": "In the AA-stacked triangle model, the interaction alone can never stabilize the rollable composite, according to the paper.",
+                "quote": "while in the AA-stacked triangle model the interaction alone can never achieve this."
+              },
+              {
+                "statement": "The paper finds that the hole's kinetic energy gain favors the 3e1h composite in both the triangle-kagome and AA-stacked triangle models.",
+                "quote": "However, interestingly, in both the triangle-kagome and AA-stacked triangle models, we find that this kinetic energy gain from the hole's hopping happens to favor a three-electron-one-hole composite."
+              },
+              {
+                "statement": "The paper proposes realizing the scenario in a dual-gate bilayer.",
+                "quote": "Finally, in Sec. VI, we propose to realize this scenario in the dual-gate bilayer sketched in Fig. 3,"
+              },
+              {
+                "statement": "Exact diagonalization results for the realistic model are obtained on a torus of 48 electron sites.",
+                "quote": "The main results of exact diagonalization are summarized in Fig. 19, which are obtained on the torus of 48 electron sites."
+              },
+              {
+                "statement": "The numerically extracted boson mass in regime II approaches about 25 electron masses as t' goes to zero, close to the 27 predicted for t_h going to zero.",
+                "quote": "we see that it approaches about $25m_{e}$ as $t^{\\prime}\\to 0$ at the left end of II"
+              },
+              {
+                "statement": "The paper reports that Tc is a few percent of t' in the numerical calculation, in agreement with its estimate.",
+                "quote": "We then map out $T_{c}$ accordingly in Fig. 19(e), where we find that $T_{c}$ is a few percent of $t^{\\prime}$, in agreement with the estimate of Sec. V."
+              },
+              {
+                "statement": "The optimal Tc in the controlled regime is about 1.1 times 10 to the minus 3 E0, which the paper says is about 0.5 K for a van der Waals system with a = 10 nm.",
+                "quote": "under which we find an optimal $T_{c}\\simeq 1.1\\times 10^{-3}E_{0}$, which is about $0.5$ K for a van der Waals system with $a=10$ nm."
+              },
+              {
+                "statement": "The paper states that the nearest-neighbor electron hopping t competes with binding and is not included in the minimal models.",
+                "quote": "We note in passing that in realistic systems, there is also a nearest-neighbor hopping $t$ that competes with binding $t_{h}$."
+              },
+              {
+                "statement": "The paper notes that an example of rolling motion has been previously found in bipolaron studies, in the form of crab motion.",
+                "quote": "It is noteworthy that an example of rolling motion has been found and studied in the context of bipolarons"
+              },
+              {
+                "statement": "The paper states that the transition temperature in moire and rhombohedral graphene platforms is at most a few kelvin.",
+                "quote": "The $T_{c}$ in these platforms is at most a few kelvin."
+              }
+            ]
+          },
+          "removed_claims": [],
+          "verification_status": "verified",
+          "text_source": "html",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-haiku-5-5",
+          "prompt_version": "9a32231007"
+        },
+        "2611.17222": {
+          "arxiv_id": "2611.17222",
+          "detail": {
+            "explanation_lay": "When ions in a crystal move in circles, they can form tiny current loops, which might produce a magnetic moment. Recent experiments on several materials reported large rotations of light's polarization inside laser-driven crystals and read these as evidence of strong induced magnetism. This paper tests that reading. The authors drove silicon carbide with circularly polarized mid-infrared laser pulses that set its atoms moving in circles. They measured a large polarization rotation inside the crystal, but the same rotation could be explained either by a very large magnetization or by a much smaller one, depending on assumptions. The decisive test was to look outside the crystal. A magnetic field produced by a real magnetization would leak out into the surrounding space, while the optical effects that mimic magnetism stay inside the illuminated region. Using a thin gallium phosphide detector placed right next to the sample, the team saw no magnetic stray field above about one microtesla. Simulations then bound the induced magnetization to less than one millitesla, far below the roughly 0.3 tesla implied by the internal measurement. The result suggests that large polarization rotations in driven insulators do not, by themselves, indicate large magnetization. The method is also presented as a more reliable way to measure magnetization in driven solids.",
+            "explanation_expert": "The paper addresses whether circularly polarized excitation of an infrared-active phonon in an insulator produces a sizeable true magnetization. The test material is 6H-SiC, driven at room temperature on its doubly degenerate E1 mode with circularly polarized pulses centred at 25.8 THz (about 500 fs long, 11.6 µm wavelength). The pump spectrum lies within the Reststrahlen band, and the reflectivity shows a band from 23.9 THz to 29.8 THz.\n\nTwo measurements are combined. First, the polarization rotation is measured inside the 35 µm thick crystal with an 800 nm probe that is reflected from the second surface, so it traverses the photoexcited region twice. The probe polarization angle is scanned and averaged to remove pump-induced linear birefringence and dichroism, and the helicity-dependent signal is the half-difference between opposite pump helicities. The peak rotation is about 3 µrad with a full width at half maximum of about 700 fs. The authors point out that the signal contains a four-wave-mixing term proportional to the antisymmetric part of the third-order susceptibility, which mimics a Faraday response with a sign that follows pump helicity. Interpreting the signal with the equilibrium Verdet constant gives an equivalent field of about 0.3 T, while treating the phonon as an applied field gives a magnetization of about 4 µT.\n\nSecond, a 60 µm GaP (100) Faraday detector is placed 5 µm above the unpumped face of the SiC, wedged so that only the reflection from the face nearest the sample is analysed. The detector measures the double-pass rotation, with a noise level of about 10 nrad, corresponding to a field uncertainty of about 1 µT. No pump-induced stray field is resolved. Finite-element Maxwell simulations (COMSOL, cylindrical symmetry) model the photoexcited region as a homogeneous disk of pump diameter and penetration-depth thickness, with magnetization along the pump direction and a time profile matched to the measured dynamics. Averaging the field over the detector volume gives a calibration curve, from which the authors infer an upper bound of about 1 mT on the magnetization, compared with the 300 mT expected for the Faraday-equivalent interpretation. Varying the assumed penetration depth changes the bound by at most a factor of two.",
+            "context": {
+              "before": "Circular phonons were proposed to generate small orbital magnetic moments in ionic solids, estimated at around 10^-4 Bohr magnetons under strong excitation. Experiments in SrTiO3 reported large circular-phonon-induced Faraday rotation that was interpreted as magnetizations far larger than ionic currents allow, and similar claims were made in other ferroelectrics and in gold nanoparticles. Theory addressed these claims, but the interpretation was disputed because nonlinear optical four-wave mixing can produce helicity-dependent rotations that mimic magnetic Faraday rotation.",
+              "change": "The paper introduces ultrafast stray-field magnetometry for driven solids: it checks whether the magnetic field outside the photoexcited volume matches the field implied by the internal polarization rotation. In 6H-SiC, the internal rotation is large, but no external stray field is detected, giving an upper bound of about 1 mT on the phonon-induced magnetization, consistent with the original small theoretical estimates and inconsistent with a 300 mT magnetization.",
+              "limitations": "Limitations and referee concerns (my assessment, not the authors' claims): the result is for a single material, a single phonon mode and one pump geometry, so generality to SrTiO3 or other ferroelectrics is not established. The 1 mT bound depends on finite-element simulations that assume a homogeneous magnetized disk with a chosen penetration depth, time profile and direction of magnetization, and on the GaP Verdet constant calibrated at room temperature. The bound is an upper limit, not a measured value, and it applies to a transient magnetization averaged over the detector volume, so spatially inhomogeneous or differently oriented magnetization could be underestimated. The stray-field measurement is also a single-point detection with a 1 µT noise floor, and the 10 nrad sensitivity required about 110 hours of averaging. The paper also states that the phonon-induced magnetization need not follow the same Faraday constants as a DC field, which weakens the link between the internal rotation and any magnetization inferred from it."
+            },
+            "claims": [
+              {
+                "statement": "In SrTiO3, large circular-phonon-induced Faraday rotation was interpreted as evidence for magnetizations four orders of magnitude larger than expected from ionic currents alone.",
+                "quote": "In SrTiO3, large circular-phonon-induced Faraday rotation was interpreted as evidence for magnetizations that are four orders of magnitude larger than expected from ionic currents alone4."
+              },
+              {
+                "statement": "Circular phonon orbital moments are expected to be small, around 10^-4 Bohr magnetons, even under strong excitation.",
+                "quote": "these moments are expected to be small even under strong excitation"
+              },
+              {
+                "statement": "The antisymmetric part of the third-order nonlinear susceptibility can produce large anomalous Faraday rotations unrelated to magnetism.",
+                "quote": "the antisymmetric part of the third order non-linear optical susceptibility can produce large anomalous Faraday rotations that are unrelated to magnetism"
+              },
+              {
+                "statement": "The pump consists of circularly polarized mid-infrared pulses of about 500 fs duration centred at 25.8 THz.",
+                "quote": "We excited this phonon mode using circularly polarized, ~500 fs long, mid-infrared pulses centered at 25.8 THz"
+              },
+              {
+                "statement": "The 6H-SiC crystal used for the measurements is 35 µm thick.",
+                "quote": "A 35 µm-thick 6H-SiC crystal (green slab) is excited with circularly polarized mid-infrared pulses"
+              },
+              {
+                "statement": "The probe polarization angle is varied and averaged to suppress pump-induced linear birefringence and dichroism.",
+                "quote": "suppressing contributions from pump-induced linear birefringence and dichroism"
+              },
+              {
+                "statement": "Interpreting the rotation as magnetic Faraday rotation with the equilibrium Verdet constant gives an equivalent magnetic field of about 0.3 T.",
+                "quote": "one extracts a response equal in magnitude to that achieved by a large equivalent magnetic field"
+              },
+              {
+                "statement": "Depending on assumptions, the internal polarization rotation could correspond to magnetizations as high as 0.3 T or as low as 4 µT.",
+                "quote": "Depending on the assumptions made, this could correspond to magnetizations as high as"
+              },
+              {
+                "statement": "No pump-induced magnetic stray field was resolved within an experimental uncertainty better than 1 µT.",
+                "quote": "No pump-induced magnetic stray field was resolved within an experimental uncertainty of better than 1 µT"
+              },
+              {
+                "statement": "A GaP detector of about 60 µm thickness was placed above the 35 µm thick SiC crystal to measure the stray field.",
+                "quote": "A ~60 µm thick GaP (100) detector was placed above a 35 µm thick 6H-SiC crystal."
+              },
+              {
+                "statement": "Finite-element simulations were used to calculate the time-dependent stray field and relate it to the magnetization in the photoexcited volume.",
+                "quote": "we used finite-element simulations to calculate the time-dependent magnetic stray field surrounding the photoexcited volume"
+              },
+              {
+                "statement": "The experimental uncertainty sets an upper bound of 1 mT on the phonon-induced magnetization.",
+                "quote": "The experimental uncertainty sets an upper bound for the phonon-induced magnetization"
+              },
+              {
+                "statement": "The experiments exclude a transient magnetization of 300 mT.",
+                "quote": "The experiments reported here exclude a transient magnetization of this magnitude."
+              },
+              {
+                "statement": "Changing the assumed pump penetration depth changes the upper bound by no more than a factor of two.",
+                "quote": "rescales the upper bound given for the phonon generated magnetization by no more than a factor of two"
+              },
+              {
+                "statement": "The peak polarization rotation scales sublinearly with pump fluence.",
+                "quote": "The peak polarization rotation shows a sublinear scaling with fluence."
+              },
+              {
+                "statement": "The authors state that it is very doubtful that polarization rotation in the driven solid can be used to establish the magnitude of the phonon-induced magnetization.",
+                "quote": "it is very doubtful that polarization rotation in the driven solid can be used at all to establish the magnitude of the phonon-induced magnetization."
+              }
+            ]
+          },
+          "removed_claims": [
+            {
+              "statement": "The measured internal polarization rotation peaks at about 3 µrad with a fast onset and slower decay.",
+              "quote": "peaking at ~3 µrad"
+            }
+          ],
+          "verification_status": "verified",
+          "text_source": "pdf",
+          "based_on_abstract": false,
+          "text_truncated": false,
+          "text_mode": "full",
+          "model": "claude-haiku-5-5",
+          "prompt_version": "9a32231007"
+        }
+      },
+      "n_done": 4,
+      "stats": {
+        "calls": 4,
+        "input": 104888,
+        "output": 28906,
+        "usd": 0.024942
+      }
+    }
+  ],
+  "notes": []
+}

@@ -42,6 +42,14 @@ prefilter:
     superconduct: 1.0
     proximity effect: 1.0
     thin film: 0.5
+    supercurrent: 1.5
+    current-phase: 1.5
+    ginzburg-landau: 1.5
+    multicomponent superconduct: 1.5
+    multiband superconduct: 1.0
+    vortex: 0.5
+    majorana: 0.5
+    topological superconduct: 0.5
     # physique mésoscopique
     mesoscopic: 1.0
     quantum transport: 0.5
@@ -86,39 +94,34 @@ profile:
   levels: {}
 
 models:
-  rank: claude-haiku-5-5        # rapide et bon marché
-  generate: claude-opus-5-5     # modèle fort
-  verify: claude-opus-5-5
+  rank: claude-haiku-5-5        # classement, la nuit
+  card: claude-haiku-5-5        # cartes, la nuit, à partir du titre et du résumé
+  generate: claude-opus-5-5     # détail (explications, contexte, affirmations), à l'ouverture d'un article
   effort: medium                # low | medium | high
   rank_batch_size: 25
 
 budget:
-  monthly_usd: 15.0             # plafond mensuel
-  # Le pipeline répartit le budget restant sur les jours restants du mois et
-  # réduit le nombre d'articles AVANT de commencer : une édition n'est jamais
-  # coupée en cours de route.
+  monthly_usd: 15.0             # plafond mensuel, nuit et ouvertures confondues
+  # La nuit : le budget restant est réparti sur les jours restants du mois et le
+  # nombre de cartes est fixé AVANT de commencer (une édition n'est jamais coupée).
+  # À l'ouverture d'un article : refus si le plafond mensuel serait dépassé.
   # Prix en USD par million de tokens [entrée, sortie, lecture de cache].
   prices:
     claude-haiku-5-5: [0.10, 0.50, 0.01]
     claude-sonnet-5-5: [2.0, 10.0, 0.10]
     claude-opus-5-5: [4.0, 20.0, 0.20]
-  # Estimation par article tant qu'il n'y a pas d'historique dans api_usage.jsonl.
-  assumed_tokens_per_article: [40000, 10000]   # [entrée, sortie], génération + vérification
+  # Estimations [entrée, sortie] tant qu'il n'y a pas d'historique dans api_usage.jsonl.
+  assumed_tokens:
+    card: [800, 1500]
+    detail: [30000, 6000]
 
 batch:
-  # API Message Batches (-50 %) pour la génération et la vérification : `run --batch`.
+  # API Message Batches (-50 %) pour les cartes de nuit : `run --batch`.
   poll_seconds: 60
   timeout_minutes: 300
 
-cache:
-  # Cache du texte de l'article, partagé entre génération, vérification et corrections.
-  # Synchrone : les appels d'un même article se suivent, le cache de 5 min suffit.
-  sync_ttl: 5m                  # 5m | 1h | off
-  # Batch : les lots sont séparés de plus de 5 min. Le cache d'une heure coûte 2x à
-  # l'écriture ; il n'est rentable que si une bonne part des articles demande une correction.
-  batch_ttl: "off"              # 5m | 1h | off
-
 fulltext:
+  # Texte envoyé à l'ouverture d'un article.
   # full : tout le texte. sections : résumé, introduction, résultats,
   # discussion/conclusion seulement (retombe sur full si l'article n'a pas ces sections).
   mode: full

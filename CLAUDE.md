@@ -4,7 +4,7 @@
 
 ## Structure
 
-- `pipeline/` — Python 3.12, paquet `arxiv_digest` (ingestion, présélection, classement, texte complet, génération, vérification).
+- `pipeline/` — Python 3.12, paquet `arxiv_digest` (la nuit : ingestion, présélection, classement, cartes ; à l'ouverture : détail et vérification des citations sans modèle).
 - `prompts/` — prompts versionnés (la version enregistrée est l'empreinte du fichier).
 - `config.yaml` — réglages (catégories, modèles, poids, plafond de dépense). Secrets dans `.env`, jamais commités.
 - `out/` — sorties locales, non commitées.
@@ -14,8 +14,9 @@
 
 - Tests : `.venv/Scripts/python -m pytest -q`
 - Essai gratuit : `.venv/Scripts/python -m arxiv_digest run --no-llm`
-- Pipeline complet (payant) : `.venv/Scripts/python -m arxiv_digest run` (synchrone) ou `run --batch` (API Batches, -50 %, pour le pipeline de nuit)
-- Essai comparatif des modèles (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
+- Édition du jour, cartes seulement (payant) : `.venv/Scripts/python -m arxiv_digest run` ou `run --batch` (API Batches, pipeline de nuit)
+- Ouverture simulée d'un article (payant) : `.venv/Scripts/python -m arxiv_digest open <arxiv_id>`
+- Essai de coût et de qualité (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
 
 ## Règles
 

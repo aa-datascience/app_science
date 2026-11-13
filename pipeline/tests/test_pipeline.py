@@ -7,11 +7,11 @@ import pytest
 from arxiv_digest.arxiv import new_submissions, parse_feed
 from arxiv_digest.config import load_config
 from arxiv_digest.fulltext import html_to_text, latex_to_text
-from arxiv_digest.models import Candidate, Claim, GeneratedContent, Paper, Ranked, RankItem
+from arxiv_digest.models import Candidate, Paper, Ranked, RankItem
 from arxiv_digest.prefilter import category_score, keyword_score, select_candidates
 from arxiv_digest.profile import update_category_weights
 from arxiv_digest.scoring import score_all, select_edition
-from arxiv_digest.steps import load_prompt, missing_quotes
+from arxiv_digest.steps import load_prompt
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -146,28 +146,7 @@ def test_latex_to_text_expands_inputs_and_strips_comments():
     assert "Section body with 5\\% loss" in text and "secret" not in text and "after" not in text
 
 
-# ---------- vérification et appels au modèle (client factice) ----------
-
-
-def content_with(quotes):
-    return GeneratedContent.model_validate(
-        {
-            "card": {"plain_title": "t", "finding": "f", "why_it_matters": "w", "tags": [], "difficulty": 9, "reading_minutes": 3},
-            "explanation_lay": "l",
-            "explanation_expert": "e",
-            "context": {"before": "b", "change": "c", "limitations": "l"},
-            "claims": [Claim(statement="s", quote=q) for q in quotes],
-        }
-    )
-
-
-def test_missing_quotes_ignores_whitespace_and_case():
-    c = content_with(["the gap  closes\nat Tc", "an invented sentence"])
-    assert c.card.difficulty == 5  # borné à 1-5
-    assert missing_quotes(c, "We find that The gap closes at Tc in all samples.") == ["an invented sentence"]
-
-
 def test_prompts_exist_and_are_versioned():
-    for name in ("system", "rank", "generate", "verify"):
+    for name in ("system", "rank", "card", "detail"):
         text, version = load_prompt(name)
         assert text and len(version) == 10

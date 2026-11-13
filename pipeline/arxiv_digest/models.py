@@ -66,16 +66,17 @@ class Ranked(BaseModel):
     final_score: float = 0.0
 
 
-# ---------- Contenu généré (spec §5, périmètre V1) ----------
+# ---------- Contenu généré ----------
 
 
 class Card(BaseModel):
+    """Carte générée la nuit, à partir du titre et du résumé seulement."""
+
     plain_title: str = Field(description="Title rewritten in plain language")
     finding: str = Field(description="One sentence: what they found")
     why_it_matters: str = Field(description="One sentence: why it matters")
     tags: list[str]
     difficulty: int = Field(description="1-5")
-    reading_minutes: int = Field(description="Estimated minutes to read the full content")
 
     _c = field_validator("difficulty")(_clamp)
 
@@ -87,33 +88,32 @@ class Context(BaseModel):
 
 
 class Claim(BaseModel):
-    statement: str = Field(description="A factual claim made in the generated content")
-    quote: str = Field(description="Verbatim passage from the paper supporting it")
+    statement: str = Field(description="A factual claim made in the entry")
+    quote: str = Field(description="Passage copied character for character from the paper, supporting the claim")
 
 
-class GeneratedContent(BaseModel):
-    card: Card
+class Detail(BaseModel):
+    """Détail généré à l'ouverture d'un article, à partir du texte complet."""
+
     explanation_lay: str = Field(description="150-250 words, educated layperson, no formulas")
     explanation_expert: str = Field(description="300-500 words, physics master's level, LaTeX in $...$ / $$...$$")
     context: Context
     claims: list[Claim]
 
 
-# ---------- Vérification ----------
+class StoredDetail(BaseModel):
+    """Détail tel qu'il est stocké : généré une fois, jamais régénéré."""
 
-
-class ClaimVerdict(BaseModel):
-    statement: str
-    supported: bool
-    evidence: str = Field(description="Verbatim supporting passage, or empty if unsupported")
-    issue: str = Field(description="What is wrong, or empty if supported")
-
-
-class Verification(BaseModel):
-    verdicts: list[ClaimVerdict]
-    unsupported_numbers: list[str] = Field(description="Numeric values in the content that do not appear in the paper")
-    ok: bool = Field(description="True only if every claim is supported and no number is invented")
-    feedback: str = Field(description="Concrete corrections to apply, or empty if ok")
+    arxiv_id: str
+    detail: Detail  # ses claims sont celles dont la citation a été retrouvée dans l'article
+    removed_claims: list[Claim] = []  # citations introuvables : affirmations retirées
+    verification_status: Literal["verified", "unverified"]
+    text_source: Literal["html", "latex", "pdf", "abstract"]
+    based_on_abstract: bool
+    text_truncated: bool = False
+    text_mode: Literal["full", "sections"] = "full"
+    model: str
+    prompt_version: str
 
 
 # ---------- Édition ----------
@@ -125,13 +125,7 @@ class EditionItem(BaseModel):
     paper: Paper
     rank: RankItem
     final_score: float
-    content: GeneratedContent
-    verification_status: Literal["verified", "unverified"]
-    text_source: Literal["html", "latex", "pdf", "abstract"]
-    based_on_abstract: bool
-    text_truncated: bool = False
-    text_mode: Literal["full", "sections"] = "full"
-    corrected: bool = False
+    card: Card
     model: str
     prompt_version: str
 

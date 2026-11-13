@@ -44,8 +44,8 @@ class ProfileCfg(BaseModel):
 
 class ModelsCfg(BaseModel):
     rank: str = "claude-haiku-5-5"
+    card: str = "claude-haiku-5-5"
     generate: str = "claude-opus-5-5"
-    verify: str = "claude-opus-5-5"
     effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     rank_batch_size: int = 25
 
@@ -54,20 +54,12 @@ class BudgetCfg(BaseModel):
     monthly_usd: float = 15.0
     # modèle -> [entrée, sortie] ou [entrée, sortie, lecture de cache], USD par million de tokens
     prices: dict[str, list[float]] = {}
-    assumed_tokens_per_article: tuple[int, int] = (40_000, 10_000)
+    assumed_tokens: dict[str, tuple[int, int]] = {"card": (800, 1500), "detail": (30_000, 6000)}
 
 
 class BatchCfg(BaseModel):
     poll_seconds: float = 60
     timeout_minutes: float = 300
-
-
-Ttl = Literal["5m", "1h", "off"]
-
-
-class CacheCfg(BaseModel):
-    sync_ttl: Ttl = "5m"
-    batch_ttl: Ttl = "off"
 
 
 class FulltextCfg(BaseModel):
@@ -89,7 +81,6 @@ class Config(BaseModel):
     models: ModelsCfg = ModelsCfg()
     budget: BudgetCfg = BudgetCfg()
     batch: BatchCfg = BatchCfg()
-    cache: CacheCfg = CacheCfg()
     fulltext: FulltextCfg = FulltextCfg()
     arxiv: ArxivCfg = ArxivCfg()
 

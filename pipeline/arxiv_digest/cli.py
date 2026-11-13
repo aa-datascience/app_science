@@ -1,9 +1,10 @@
 """Ligne de commande.
 
     python -m arxiv_digest run --no-llm     # ingestion + présélection seulement, gratuit
-    python -m arxiv_digest run              # édition du jour, appels synchrones
-    python -m arxiv_digest run --batch      # édition du jour via l'API Batches (-50 %, plus lent)
-    python -m arxiv_digest compare          # essai comparatif des modèles (voir compare.py)
+    python -m arxiv_digest run              # édition du jour (classement + cartes), appels synchrones
+    python -m arxiv_digest run --batch      # idem, cartes via l'API Batches (-50 %) : pipeline de nuit
+    python -m arxiv_digest open 2611.01234  # simule l'ouverture d'un article : génère son détail
+    python -m arxiv_digest compare          # essai de coût et de qualité (voir compare.py)
 """
 
 from __future__ import annotations
@@ -21,14 +22,14 @@ import anthropic
 from dotenv import load_dotenv
 
 from .arxiv import fetch_feeds, new_submissions
-from .budget import affordable_size, estimate_cost_per_article, month_spent
+from .budget import affordable_size, can_open, estimate_cost, month_spent
 from .config import REPO_ROOT, Config, load_config
 from .fulltext import fetch_fulltext
 from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused, read_usage
-from .models import Candidate, Edition, EditionItem, Ranked
+from .models import Candidate, Edition, EditionItem, Paper, Ranked, StoredDetail
 from .prefilter import select_candidates
 from .scoring import score_all, select_edition
-from .steps import Article, Outcome, generate_verified, generate_verified_batch, make_article, rank
+from .steps import Article, generate_detail, make_article, make_cards, rank
 
 log = logging.getLogger("arxiv_digest")
 RESERVE_DAYS = 7
@@ -66,7 +67,7 @@ def save_reserve(path: Path, day: str, unselected: list[Ranked], used_ids: set[s
 
 
 def ingest(cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None) -> tuple[int, list[Candidate]]:
-    """Étapes 1 et 2 : nouvelles soumissions du jour, puis présélection sans IA."""
+    """Nouvelles soumissions du jour, puis présélection sans IA."""
     cats = list(cfg.categories.followed) + cfg.categories.exploration
     papers = new_submissions(
         fetch_feeds(cats, user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds, fixtures_dir=fixtures)
@@ -78,8 +79,7 @@ def ingest(cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None) 
     return len(papers), candidates
 
 
-def fetch_article(r: Ranked, cfg: Config, mode: str | None = None) -> Article:
-    paper = r.candidate.paper
+def fetch_article(paper: Paper, cfg: Config, mode: str | None = None) -> Article:
     text, source, truncated = fetch_fulltext(
         paper,
         user_agent=cfg.arxiv.user_agent,
@@ -91,23 +91,7 @@ def fetch_article(r: Ranked, cfg: Config, mode: str | None = None) -> Article:
     return art
 
 
-def _item(position: int, r: Ranked, art: Article, o: Outcome, cfg: Config) -> EditionItem:
-    return EditionItem(
-        position=position,
-        slot=r.candidate.slot,
-        paper=art.paper,
-        rank=r.rank,
-        final_score=r.final_score,
-        content=o.content,
-        verification_status=o.status,
-        text_source=art.source,
-        based_on_abstract=art.source == "abstract",
-        text_truncated=art.truncated,
-        text_mode=art.mode,
-        corrected=o.corrected,
-        model=cfg.models.generate,
-        prompt_version=o.prompt_version,
-    )
+# ---------- La nuit : édition = classement + cartes ----------
 
 
 def run(
@@ -131,14 +115,12 @@ def run(
     # pour ne jamais couper une édition en cours de route.
     usage = read_usage(usage_path)
     spent = month_spent(usage, day)
-    per_article = estimate_cost_per_article(cfg, usage, batch=batch)
+    per_card = estimate_cost(cfg, usage, "card", batch=batch)
     wanted = size or cfg.edition.size
-    target_size = affordable_size(
-        wanted, monthly_cap=cfg.budget.monthly_usd, spent=spent, day=day, per_article=per_article
-    )
+    target_size = affordable_size(wanted, monthly_cap=cfg.budget.monthly_usd, spent=spent, day=day, per_article=per_card)
     log.info(
-        "budget: %.2f$ dépensés ce mois sur %.2f$, %.3f$ estimés par article -> %d articles sur %d",
-        spent, cfg.budget.monthly_usd, per_article, target_size, wanted,
+        "budget: %.2f$ dépensés ce mois sur %.2f$, %.4f$ estimés par carte -> %d cartes sur %d",
+        spent, cfg.budget.monthly_usd, per_card, target_size, wanted,
     )
     if target_size < wanted:
         msg = (
@@ -153,9 +135,9 @@ def run(
     ranked: list[Ranked] = []
     try:
         if target_size == 0:
-            raise BatchFailed("Budget du jour insuffisant pour un seul article : pas d'édition.")
+            raise BatchFailed("Budget du jour insuffisant pour une seule carte : pas d'édition.")
 
-        # Étape 3 — classement (ou réserve de la semaine s'il n'y a rien de neuf)
+        # Classement (ou réserve de la semaine s'il n'y a rien de neuf)
         if candidates:
             ranked = score_all(rank(llm, candidates, cfg), cfg)
         else:
@@ -165,36 +147,25 @@ def run(
 
         selected = select_edition(ranked, cfg, target_size)
 
-        # Étapes 4 à 6 — texte complet, génération, vérification
-        if batch:
-            arts = {r.candidate.paper.arxiv_id: fetch_article(r, cfg) for r in selected}
-            outcomes = generate_verified_batch(llm, list(arts.values()), cfg)
-            for r in selected:
-                aid = r.candidate.paper.arxiv_id
-                if aid in outcomes:
-                    items.append(_item(len(items) + 1, r, arts[aid], outcomes[aid], cfg))
-            if len(items) < len(selected):
-                notes.append(f"{len(selected) - len(items)} articles abandonnés (génération en erreur).")
-        else:
-            chosen = {r.candidate.paper.arxiv_id for r in selected}
-            # Remplaçants si un article échoue : le reste du classement principal.
-            backups = sorted(
-                (r for r in ranked if r.candidate.paper.arxiv_id not in chosen and r.candidate.slot == "main"),
-                key=lambda r: -r.final_score,
-            )
-            for r in selected + backups:
-                if len(items) >= len(selected):
-                    break
-                art = fetch_article(r, cfg)
-                try:
-                    outcome = generate_verified(llm, art, cfg)
-                except (LLMRefused, LLMInvalid) as e:
-                    log.warning("article %s abandonné: %r", art.paper.arxiv_id, e)
-                    continue
-                except anthropic.BadRequestError as e:
-                    log.warning("article %s abandonné (requête refusée par l'API): %s", art.paper.arxiv_id, e.message)
-                    continue
-                items.append(_item(len(items) + 1, r, art, outcome, cfg))
+        # Cartes : titre et résumé seulement, un appel par article
+        cards, version = make_cards(llm, [r.candidate.paper for r in selected], cfg, batch=batch)
+        for r in selected:
+            card = cards.get(r.candidate.paper.arxiv_id)
+            if card is not None:
+                items.append(
+                    EditionItem(
+                        position=len(items) + 1,
+                        slot=r.candidate.slot,
+                        paper=r.candidate.paper,
+                        rank=r.rank,
+                        final_score=r.final_score,
+                        card=card,
+                        model=cfg.models.card,
+                        prompt_version=version,
+                    )
+                )
+        if len(items) < len(selected):
+            notes.append(f"{len(selected) - len(items)} cartes en erreur, articles retirés de l'édition.")
     except BatchFailed as e:
         notes.append(str(e))
         log.error("%s", e)
@@ -205,7 +176,7 @@ def run(
         notes.append(f"Erreur de l'API Claude : {e}")
         log.error("erreur de l'API Claude: %s", e)
 
-    # Étape 7 — publication (locale : un fichier JSON)
+    # Publication (locale : un fichier JSON)
     edition = Edition(
         date=day, status="ready" if items else "failed", items=items, cost_usd=round(llm.run_spent, 4), notes=notes
     )
@@ -216,15 +187,65 @@ def run(
     _write_json(seen_path, sorted(seen_ids | used))
     save_reserve(reserve_path, day, [r for r in ranked if r.candidate.paper.arxiv_id not in used], used)
 
-    verified = sum(i.verification_status == "verified" for i in items)
     print(
-        f"\nÉdition {day}: {edition.status}, {len(items)} articles ({verified} vérifiés), "
-        f"{llm.run_spent:.3f}$ pour cette édition, {spent + llm.run_spent:.2f}$ ce mois"
+        f"\nÉdition {day}: {edition.status}, {len(items)} cartes, "
+        f"{llm.run_spent:.4f}$ pour cette édition, {spent + llm.run_spent:.2f}$ ce mois"
     )
     for n in notes:
         print(f"  ! {n}")
     print(f"  -> {path}")
     return 0 if items else 1
+
+
+# ---------- À l'ouverture d'un article : détail, généré une fois puis stocké ----------
+
+
+def find_paper(out: Path, arxiv_id: str) -> Paper | None:
+    """Cherche l'article dans les éditions locales, de la plus récente à la plus ancienne."""
+    for path in sorted((out / "editions").glob("*.json"), reverse=True):
+        for item in _read_json(path, {}).get("items", []):
+            if item["paper"]["arxiv_id"] == arxiv_id:
+                return Paper.model_validate(item["paper"])
+    return None
+
+
+def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
+    """Ce que fera l'Edge Function quand une carte est ouverte dans l'app."""
+    stored = out / "details" / f"{arxiv_id}.json"
+    if stored.exists():
+        d = StoredDetail.model_validate(_read_json(stored, {}))
+        print(f"Détail déjà généré ({d.verification_status}, {d.model}) : aucun appel. -> {stored}")
+        return 0
+    paper = find_paper(out, arxiv_id)
+    if paper is None:
+        log.error("article %s absent des éditions locales (lancer d'abord `run`)", arxiv_id)
+        return 1
+
+    usage_path = out / "api_usage.jsonl"
+    usage = read_usage(usage_path)
+    spent, estimate = month_spent(usage, day), estimate_cost(cfg, usage, "detail")
+    if not can_open(monthly_cap=cfg.budget.monthly_usd, spent=spent, estimate=estimate):
+        log.warning(
+            "plafond mensuel: %.2f$ dépensés sur %.2f$, %.3f$ estimés pour ce détail -> refusé",
+            spent, cfg.budget.monthly_usd, estimate,
+        )
+        return 3
+
+    llm = LLM(cfg, usage_path, day)
+    try:
+        detail = generate_detail(llm, fetch_article(paper, cfg), cfg)
+    except anthropic.AuthenticationError:
+        log.error("clé API Anthropic absente ou invalide (voir .env.example)")
+        return 2
+    except (LLMRefused, LLMInvalid, anthropic.APIConnectionError, anthropic.APIStatusError) as e:
+        log.error("détail %s: échec (%r)", arxiv_id, e)
+        return 1
+    _write_json(stored, detail.model_dump())
+    print(
+        f"Détail {arxiv_id}: {detail.verification_status}, {len(detail.detail.claims)} affirmations sourcées, "
+        f"{len(detail.removed_claims)} retirées, {llm.run_spent:.4f}$ -> {stored}"
+    )
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -237,17 +258,19 @@ def main(argv: list[str] | None = None) -> int:
     common.add_argument("--out", type=Path, default=REPO_ROOT / "out", help="dossier de sortie")
     common.add_argument("--fixtures", type=Path, help="lit les flux arXiv depuis ce dossier au lieu du réseau")
 
-    p = sub.add_parser("run", parents=[common], help="construit l'édition du jour")
+    p = sub.add_parser("run", parents=[common], help="construit l'édition du jour (classement + cartes)")
     p.add_argument("--no-llm", action="store_true", help="ingestion et présélection seulement (aucun appel payant)")
     p.add_argument("--size", type=int, help="nombre d'articles (défaut : config.yaml)")
-    p.add_argument("--batch", action="store_true", help="génération et vérification via l'API Batches (-50 %%)")
+    p.add_argument("--batch", action="store_true", help="cartes via l'API Batches (-50 %%)")
 
-    c = sub.add_parser("compare", parents=[common], help="essai comparatif des modèles sur quelques articles")
+    o = sub.add_parser("open", parents=[common], help="simule l'ouverture d'un article : génère et stocke son détail")
+    o.add_argument("arxiv_id")
+
+    c = sub.add_parser("compare", parents=[common], help="essai de coût et de qualité sur quelques articles")
     c.add_argument("--n", type=int, default=4, help="nombre d'articles (dont un exploration)")
-    c.add_argument("--max-usd", type=float, default=5.0, help="plafond de dépense de l'essai")
-    c.add_argument("--configs", default="haiku,sonnet,opus", help="configurations à comparer")
-    c.add_argument("--sections-for", default="haiku,sonnet", help="configurations à mesurer aussi en mode sections")
-    c.add_argument("--batch-check", action="store_true", help="valide aussi le mode Batches sur un article (Haiku)")
+    c.add_argument("--max-usd", type=float, default=2.0, help="plafond de dépense de l'essai")
+    c.add_argument("--detail-models", default="sonnet,haiku", help="modèles à comparer pour le détail")
+    c.add_argument("--no-batch", action="store_true", help="cartes en synchrone plutôt que par l'API Batches")
     args = parser.parse_args(argv)
 
     for stream in (sys.stdout, sys.stderr):
@@ -257,13 +280,15 @@ def main(argv: list[str] | None = None) -> int:
         logging.getLogger(noisy).setLevel(logging.WARNING)
     load_dotenv(REPO_ROOT / ".env")
 
-    needs_key = args.command == "compare" or not args.no_llm
+    needs_key = args.command != "run" or not args.no_llm
     if needs_key and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
         log.error("ANTHROPIC_API_KEY manquante : copier .env.example vers .env, ou lancer avec --no-llm")
         return 2
 
     day = args.date or datetime.now(ZoneInfo("Europe/Zurich")).date().isoformat()
     cfg = load_config(args.config)
+    if args.command == "open":
+        return open_paper(cfg, day=day, out=args.out, arxiv_id=args.arxiv_id)
     if args.command == "compare":
         from .compare import compare
 
@@ -274,9 +299,8 @@ def main(argv: list[str] | None = None) -> int:
             fixtures=args.fixtures,
             n=args.n,
             max_usd=args.max_usd,
-            labels=[s for s in args.configs.split(",") if s],
-            sections_for=[s for s in args.sections_for.split(",") if s],
-            batch_check=args.batch_check,
+            detail_labels=[s for s in args.detail_models.split(",") if s],
+            batch=not args.no_batch,
         )
     return run(cfg, day=day, out=args.out, no_llm=args.no_llm, size=args.size, fixtures=args.fixtures, batch=args.batch)
 

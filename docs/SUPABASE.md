@@ -62,4 +62,11 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 - Vérifié sur le vrai projet (13 novembre 2026) : la migration, l'écriture d'une édition par le pipeline (3 cartes, 115 articles classés, texte complet des articles de l'édition), la vue `edition_today`, l'ouverture d'un article par la commande `open` avec le texte lu en base, et le fait qu'un second `open` ne régénère rien. Sans clé, l'API répond 401.
 - Vérifié hors Supabase, dans un Postgres embarqué : les règles RLS bloquent tout compte autre que le propriétaire.
 - Vérifié : la vérification des citations donne les mêmes résultats en Python et en TypeScript (`node --test supabase/functions/open-paper/citations.test.ts`).
-- **Pas encore vérifié** : l'Edge Function `open-paper`, qui n'est pas déployée et n'a jamais été exécutée ; et la lecture depuis l'app avec la session du propriétaire.
+- Edge Function `open-paper` : déployée le 13 novembre 2026 depuis l'éditeur du tableau de bord (**Edge Functions → Deploy a new function → Via Editor**, deux fichiers : `index.ts` et `citations.ts`, identiques au dépôt). Sans session, elle répond 401.
+- **Pas encore vérifié** : un appel réussi de `open-paper` avec la session du propriétaire (il faut l'app, ou un jeton de session), et la lecture depuis l'app.
+
+## Deux réglages de la fonction à faire à la main
+
+1. **Edge Functions → Secrets** : ajouter `ANTHROPIC_API_KEY`. Sans elle, la fonction échoue à la génération.
+2. **Edge Functions → open-paper → Settings → « Verify JWT with legacy secret »** : laissé activé. Si l'app reçoit un 401 de la fonction alors que la session est valide, c'est ce réglage : le désactiver (la fonction vérifie elle-même que l'appelant est le propriétaire, via `is_owner()`). C'est un choix de sécurité à faire en connaissance de cause.
+

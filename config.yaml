@@ -96,7 +96,7 @@ profile:
 models:
   rank: claude-haiku-5-5        # classement, la nuit
   card: claude-haiku-5-5        # cartes, la nuit, à partir du titre et du résumé
-  generate: claude-opus-5-5     # détail (explications, contexte, affirmations), à l'ouverture d'un article
+  generate: claude-haiku-5-5    # détail (explications, contexte, affirmations), à l'ouverture d'un article
   effort: medium                # low | medium | high
   rank_batch_size: 25
 

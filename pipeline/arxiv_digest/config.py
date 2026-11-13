@@ -45,7 +45,7 @@ class ProfileCfg(BaseModel):
 class ModelsCfg(BaseModel):
     rank: str = "claude-haiku-5-5"
     card: str = "claude-haiku-5-5"
-    generate: str = "claude-opus-5-5"
+    generate: str = "claude-haiku-5-5"
     effort: Literal["low", "medium", "high", "xhigh", "max"] = "medium"
     rank_batch_size: int = 25
 

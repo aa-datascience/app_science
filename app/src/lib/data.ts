@@ -48,6 +48,13 @@ export async function loadDetail(arxivId: string): Promise<DetailResult> {
   const cached = await read<DetailRow>(K.detail(arxivId));
   if (cached) return { ok: true, detail: cached };
 
+  // Déjà généré (par une ouverture précédente, sur cet appareil ou un autre) : simple lecture en base.
+  const stored = await supabase.from("details").select("*").eq("paper_id", arxivId).maybeSingle();
+  if (stored.data) {
+    await write(K.detail(arxivId), stored.data);
+    return { ok: true, detail: stored.data as DetailRow };
+  }
+
   const { data, error } = await supabase.functions.invoke("open-paper", { body: { arxiv_id: arxivId } });
   if (!error && data?.detail) {
     await write(K.detail(arxivId), data.detail);

@@ -65,7 +65,7 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 - Edge Function `open-paper` : déployée le 13 novembre 2026 depuis l'éditeur du tableau de bord (**Edge Functions → Deploy a new function → Via Editor**, deux fichiers : `index.ts` et `citations.ts`, identiques au dépôt). Sans session, elle répond 401.
 - Vérifié sur le vrai projet avec la clé publique seule (sans session) : toutes les tables et la vue renvoient zéro ligne ou un refus, et l'écriture d'un feedback est refusée.
 - Vérifié sur le vrai projet avec la session du propriétaire (13 novembre 2026, `scripts/test_open_paper.py`) : lecture de `edition_today` (3 cartes), puis `open-paper` a généré, vérifié et stocké le détail d'un article (statut `verified`, 8 affirmations sourcées).
-- **Pas encore vérifié** : l'appel depuis l'app elle-même.
+- Vérifié depuis l'app (navigateur, 13 novembre 2026) : lecture de l'édition, écriture du feedback et des événements de lecture, fin d'édition, et appel de `open-paper`. La fonction a été redéployée avec les en-têtes CORS nécessaires à un navigateur.
 
 ## Deux réglages de la fonction à faire à la main
 

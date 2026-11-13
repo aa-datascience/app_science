@@ -11,7 +11,7 @@
 - `supabase/` — migration SQL (tables, RLS, vue `edition_today`) et Edge Function `open-paper` (détail à l'ouverture). Mise en service : `docs/SUPABASE.md`.
 - État du pipeline : fichiers locaux, ou base Supabase dès que `SUPABASE_URL` et `SUPABASE_SERVICE_KEY` sont dans `.env` (`store.py`).
 - `.github/workflows/` — édition de nuit, notifications, tests. Fonctionnement et secrets : `docs/GITHUB_ACTIONS.md`.
-- À venir : `app/` (ordre de construction : `docs/SPEC.md`).
+- `app/` — app Android (Expo, TypeScript). Lancement, écrans et état des vérifications : `docs/APP.md`. Dans ce dossier : `npm run typecheck`, `npm test`, `npm run web`.
 
 ## Commandes (depuis `pipeline/`)
 

@@ -32,8 +32,16 @@ type ServerConfig = {
   detail_schema: Record<string, unknown>;
 };
 
+// En-têtes CORS : inutiles pour l'app Android, nécessaires quand l'app tourne dans un navigateur.
+// L'accès reste contrôlé par la session du propriétaire, pas par l'origine.
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 /** Date du jour à Zurich, AAAA-MM-JJ : même convention que le pipeline. */
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(new Date());
@@ -50,6 +58,7 @@ function render(template: string, values: Record<string, string>): string {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;

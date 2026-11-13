@@ -1,0 +1,80 @@
+# Réglages du pipeline. Les secrets vont dans .env, jamais ici.
+
+edition:
+  size: 8                 # nombre d'articles par édition
+  max_per_category: 3     # contrainte de diversité (par catégorie principale)
+  exploration_slots: 1    # toujours présent, jamais supprimé par le feedback
+
+categories:
+  # Catégories suivies et leur poids (1.0 = neutre).
+  followed:
+    cond-mat.supr-con: 1.0
+    cond-mat.mes-hall: 1.0
+    cond-mat.str-el: 1.0
+    quant-ph: 1.0
+    hep-ph: 1.0
+    hep-th: 1.0
+    gr-qc: 1.0
+    astro-ph.CO: 1.0
+  # Réservoir pour l'emplacement exploration (reste de la physique).
+  exploration:
+    - cond-mat.stat-mech
+    - cond-mat.mtrl-sci
+    - cond-mat.quant-gas
+    - physics.optics
+    - physics.atom-ph
+    - astro-ph.HE
+    - astro-ph.GA
+    - nucl-th
+    - hep-ex
+
+prefilter:
+  max_candidates: 100
+  max_exploration_candidates: 15
+  # Mots-clés pondérés, cherchés dans le titre (compte double) et le résumé.
+  # À ADAPTER : ce sont des exemples neutres tirés des catégories suivies.
+  keywords_positive:
+    superconduct: 1.0
+    topological: 0.5
+    quantum error correction: 0.5
+  keywords_negative: {}
+  followed_authors: []
+  author_bonus: 2.0
+
+scoring:
+  # Score final = somme pondérée (notes 1-5 ramenées à 0-1).
+  weights:
+    relevance: 0.4
+    importance: 0.3
+    novelty: 0.2
+    prefilter: 0.1
+
+profile:
+  # Description libre des intérêts, envoyée au modèle de classement. À ADAPTER.
+  interests: >
+    Physicist reader. Follows condensed matter (superconductivity, mesoscopic
+    and strongly correlated systems), quantum physics, high-energy theory and
+    phenomenology, gravitation and cosmology. Prefers clear physical results
+    over incremental technical papers.
+  # Niveau par sous-domaine : beginner | intermediate | expert
+  levels: {}
+
+models:
+  rank: claude-haiku-5-5        # rapide et bon marché
+  generate: claude-opus-5-5     # modèle fort
+  verify: claude-opus-5-5
+  effort: medium                # low | medium | high
+  rank_batch_size: 25
+
+budget:
+  daily_usd: 1.0                # plafond quotidien : le pipeline s'arrête proprement au-delà
+  # Prix en USD par million de tokens [entrée, sortie].
+  prices:
+    claude-haiku-5-5: [0.10, 0.50]
+    claude-sonnet-5-5: [2.0, 10.0]
+    claude-opus-5-5: [4.0, 20.0]
+
+arxiv:
+  user_agent: "arxiv-digest-pipeline/0.1"
+  delay_seconds: 3              # arXiv demande une requête toutes les quelques secondes
+  max_fulltext_chars: 300000    # au-delà, le texte est coupé et l'article marqué "truncated"

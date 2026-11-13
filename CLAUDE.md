@@ -10,7 +10,8 @@
 - `out/` — sorties locales, non commitées.
 - `supabase/` — migration SQL (tables, RLS, vue `edition_today`) et Edge Function `open-paper` (détail à l'ouverture). Mise en service : `docs/SUPABASE.md`.
 - État du pipeline : fichiers locaux, ou base Supabase dès que `SUPABASE_URL` et `SUPABASE_SERVICE_KEY` sont dans `.env` (`store.py`).
-- À venir : `.github/workflows/`, `app/` (ordre de construction : `docs/SPEC.md`).
+- `.github/workflows/` — édition de nuit, notifications, tests. Fonctionnement et secrets : `docs/GITHUB_ACTIONS.md`.
+- À venir : `app/` (ordre de construction : `docs/SPEC.md`).
 
 ## Commandes (depuis `pipeline/`)
 
@@ -18,6 +19,7 @@
 - Essai gratuit : `.venv/Scripts/python -m arxiv_digest run --no-llm`
 - Édition du jour, cartes seulement (payant) : `.venv/Scripts/python -m arxiv_digest run` ou `run --batch` (API Batches, pipeline de nuit)
 - Ouverture simulée d'un article (payant) : `.venv/Scripts/python -m arxiv_digest open <arxiv_id>`
+- Notification du matin ou du soir, sans envoi : `.venv/Scripts/python -m arxiv_digest notify morning --dry-run`
 - Essai de coût et de qualité (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
 
 ## Règles

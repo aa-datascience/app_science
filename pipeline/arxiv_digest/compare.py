@@ -135,7 +135,7 @@ def compare(
     notes: list[str] = []
 
     # --- Nuit : classement ---
-    _, candidates = ingest(cfg, day=day, seen_ids=set(), fixtures=fixtures)
+    _, candidates, _ = ingest(cfg, day=day, seen_ids=set(), fixtures=fixtures)
     if not candidates:
         log.error("aucun candidat aujourd'hui (pas d'annonces arXiv ?)")
         return 1

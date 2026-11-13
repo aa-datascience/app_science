@@ -35,8 +35,13 @@ from .store import _write_json, make_store
 log = logging.getLogger("arxiv_digest")
 
 
-def ingest(cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None) -> tuple[int, list[Candidate]]:
-    """Nouvelles soumissions du jour, puis présélection sans IA."""
+def ingest(
+    cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None
+) -> tuple[int, list[Candidate], str]:
+    """Nouvelles soumissions du jour, puis présélection sans IA.
+
+    Renvoie (nombre de soumissions, candidats, date d'annonce la plus récente du flux).
+    """
     cats = list(cfg.categories.followed) + cfg.categories.exploration
     papers = new_submissions(
         fetch_feeds(cats, user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds, fixtures_dir=fixtures)
@@ -45,7 +50,8 @@ def ingest(cfg: Config, *, day: str, seen_ids: set[str], fixtures: Path | None) 
     candidates = select_candidates(papers, cfg, seen_ids=seen_ids, seed=day)
     n_explo = sum(c.slot == "exploration" for c in candidates)
     log.info("présélection: %d candidats (%d exploration)", len(candidates), n_explo)
-    return len(papers), candidates
+    latest = max((p.published[:10] for p in papers), default="")
+    return len(papers), candidates, latest
 
 
 def fetch_article(paper: Paper, cfg: Config, mode: str | None = None) -> Article:
@@ -64,13 +70,26 @@ def fetch_article(paper: Paper, cfg: Config, mode: str | None = None) -> Article
 
 
 def run(
-    cfg: Config, *, day: str, out: Path, no_llm: bool, size: int | None, fixtures: Path | None, batch: bool
+    cfg: Config, *, day: str, out: Path, no_llm: bool, size: int | None, fixtures: Path | None, batch: bool,
+    stale: str = "reserve", force: bool = False,
 ) -> int:
     notes: list[str] = []
     store = make_store(out)
+    # Le pipeline de nuit est lancé plusieurs fois par sécurité : une édition prête n'est pas refaite.
+    if not no_llm and not force and store.has_edition(day):
+        print(f"Édition {day} déjà prête : rien à faire (--force pour la refaire).")
+        return 0
     seen_ids = store.seen_ids()
 
-    n_papers, candidates = ingest(cfg, day=day, seen_ids=seen_ids, fixtures=fixtures)
+    n_papers, candidates, latest = ingest(cfg, day=day, seen_ids=seen_ids, fixtures=fixtures)
+    # arXiv met ses flux à jour à minuit (heure de la côte Est). Avant cela, ou le week-end, le flux
+    # contient encore l'annonce précédente : il ne faut pas en refaire une édition.
+    if not no_llm and n_papers and latest < day:
+        if stale == "wait":
+            print(f"Flux arXiv pas encore à jour (dernière annonce : {latest}) : on attend le prochain lancement.")
+            return 0
+        log.info("flux arXiv non mis à jour aujourd'hui (dernière annonce: %s): édition tirée de la réserve", latest)
+        candidates = []
     _write_json(out / "candidates" / f"{day}.json", [c.model_dump() for c in candidates])
 
     if no_llm:
@@ -228,6 +247,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-llm", action="store_true", help="ingestion et présélection seulement (aucun appel payant)")
     p.add_argument("--size", type=int, help="nombre d'articles (défaut : config.yaml)")
     p.add_argument("--batch", action="store_true", help="cartes via l'API Batches (-50 %%)")
+    p.add_argument("--stale", choices=["wait", "reserve"], default="reserve",
+                   help="si le flux arXiv n'est pas à jour : attendre (ne rien faire) ou puiser dans la réserve")
+    p.add_argument("--force", action="store_true", help="refait l'édition même si elle est déjà prête")
+
+    nt = sub.add_parser("notify", parents=[common], help="envoie la notification du matin ou du soir si elle est due")
+    nt.add_argument("kind", choices=["morning", "evening"])
+    nt.add_argument("--dry-run", action="store_true", help="décide et affiche, sans envoyer ni marquer")
 
     o = sub.add_parser("open", parents=[common], help="simule l'ouverture d'un article : génère et stocke son détail")
     o.add_argument("arxiv_id")
@@ -245,6 +271,11 @@ def main(argv: list[str] | None = None) -> int:
     for noisy in ("httpx", "anthropic"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     load_dotenv(REPO_ROOT / ".env")
+
+    if args.command == "notify":
+        from .notify import notify
+
+        return notify(out=args.out, kind=args.kind, dry_run=args.dry_run)
 
     needs_key = args.command != "run" or not args.no_llm
     if needs_key and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
@@ -268,7 +299,10 @@ def main(argv: list[str] | None = None) -> int:
             detail_labels=[s for s in args.detail_models.split(",") if s],
             batch=not args.no_batch,
         )
-    return run(cfg, day=day, out=args.out, no_llm=args.no_llm, size=args.size, fixtures=args.fixtures, batch=args.batch)
+    return run(
+        cfg, day=day, out=args.out, no_llm=args.no_llm, size=args.size, fixtures=args.fixtures, batch=args.batch,
+        stale=args.stale, force=args.force,
+    )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,47 @@
+# Notifications : une le matin (édition prête), un rappel le soir si l'édition n'est pas terminée.
+#
+# GitHub ne connaît que l'heure UTC et pas l'heure d'été : chaque notification a deux créneaux,
+# et la commande n'envoie que si l'heure locale réglée est atteinte et que rien n'a déjà été
+# envoyé ce jour-là (heures par défaut : 7 h 30 et 20 h, Europe/Zurich).
+#   matin  05:35 et 06:35 UTC  ->  7 h 35 en été, 7 h 35 en hiver
+#   soir   18:05 et 19:05 UTC  ->  20 h 05 en été, 20 h 05 en hiver
+# Une heure réglée dans l'app est donc arrondie au créneau suivant.
+
+name: Notifications
+
+on:
+  schedule:
+    - cron: "35 5 * * *"
+    - cron: "35 6 * * *"
+    - cron: "5 18 * * *"
+    - cron: "5 19 * * *"
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "Notification à évaluer"
+        type: choice
+        options: [morning, evening]
+        default: morning
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pipeline/pyproject.toml
+      - run: pip install -e ./pipeline
+      - name: Envoyer la notification si elle est due
+        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          KIND: ${{ inputs.kind || (startsWith(github.event.schedule, '35 ') && 'morning' || 'evening') }}
+        run: python -m arxiv_digest notify "$KIND"

@@ -12,7 +12,7 @@ import anthropic
 from .citations import check_claims
 from .config import REPO_ROOT, Config
 from .fulltext import select_sections
-from .llm import LLM, LLMInvalid, LLMRefused, Req
+from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused, Req
 from .models import Candidate, Card, Detail, Paper, RankBatch, Ranked, StoredDetail
 
 log = logging.getLogger(__name__)
@@ -122,9 +122,13 @@ def make_cards(
     built = [card_req(p, cfg, label) for p in papers]
     version = built[0][1] if built else ""
     reqs = [r for r, _ in built]
+    results = None
     if batch:
-        results = llm.run_batch(reqs)
-    else:
+        try:
+            results = llm.run_batch(reqs)
+        except BatchFailed as e:  # lot trop lent ou en échec : l'édition ne doit pas en dépendre
+            log.warning("cartes par lot: %s ; reprise en appels synchrones", e)
+    if results is None:
         results = []
         for r in reqs:
             try:

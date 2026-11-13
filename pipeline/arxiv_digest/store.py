@@ -72,6 +72,9 @@ class LocalStore:
     def seen_ids(self) -> set[str]:
         return set(_read_json(self.out / "seen.json", []))
 
+    def has_edition(self, day: str) -> bool:
+        return _read_json(self.out / "editions" / f"{day}.json", {}).get("status") == "ready"
+
     def usage_rows(self, day: str) -> list[dict]:
         path = self.out / "api_usage.jsonl"
         if not path.exists():
@@ -196,6 +199,29 @@ class SupabaseStore:
 
     def seen_ids(self) -> set[str]:
         return {r["paper_id"] for r in self._get("edition_items", select="paper_id")}
+
+    def has_edition(self, day: str) -> bool:
+        return bool(self._get("editions", select="date", date=f"eq.{day}", status="in.(ready,fallback)"))
+
+    # --- notifications ---
+
+    def edition_state(self, day: str) -> dict | None:
+        """Ligne de l'édition du jour, avec le nombre de cartes et le nombre de cartes déjà vues."""
+        rows = self._get("editions", select="*", date=f"eq.{day}")
+        if not rows:
+            return None
+        items = self._get("edition_items", select="paper_id", edition_date=f"eq.{day}")
+        shown = self._get("reading_events", select="paper_id", edition_date=f"eq.{day}", event="eq.shown")
+        in_edition = {i["paper_id"] for i in items}
+        return {**rows[0], "n_items": len(items), "n_shown": len({s["paper_id"] for s in shown} & in_edition)}
+
+    def profile(self) -> dict:
+        rows = self._get("profile", select="settings,push_token", id="eq.1")
+        return rows[0] if rows else {"settings": {}, "push_token": None}
+
+    def mark_notified(self, day: str, kind: str) -> None:
+        body = {f"{kind}_notified_at": datetime.now(timezone.utc).isoformat()}
+        self.http.patch("/editions", params={"date": f"eq.{day}"}, json=body).raise_for_status()
 
     def usage_rows(self, day: str) -> list[dict]:
         d = date.fromisoformat(day).replace(day=1)

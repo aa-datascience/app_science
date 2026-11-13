@@ -44,3 +44,8 @@ Une le matin (« Today's edition is ready — 8 papers »), un rappel le soir se
 - Les crons de GitHub peuvent partir avec plusieurs minutes de retard, parfois davantage.
 - GitHub désactive les workflows planifiés d'un dépôt resté 60 jours sans activité ; il suffit de les réactiver dans l'onglet Actions.
 - L'envoi réel d'une notification n'a jamais été testé : il faut l'app et un jeton Expo.
+
+## État des vérifications (13 novembre 2026)
+
+- Les trois secrets sont en place ; un lancement manuel de « Édition de nuit » a réussi : installation, lecture des secrets, accès à Supabase, et refus de refaire l'édition déjà prête.
+- Pas encore observé : une édition complète construite par GitHub (premier lancement planifié la nuit du 13 au 14 novembre).

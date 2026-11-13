@@ -8,6 +8,8 @@
 2. **Authentication → Users → Add user** : créer votre compte (e-mail et mot de passe). Noter son identifiant (UUID).
 3. **Authentication → Sign In / Providers** : désactiver « Allow new users to sign up ». La base refuse de toute façon tout compte qui n'est pas le propriétaire, mais autant ne pas en laisser créer.
 
+4. **Integrations → Data API** : activer « Enable Data API » si ce n'est pas déjà fait, avec le schéma `public` exposé. Sans cela, toute requête à la base renvoie une erreur 503 `PGRST002` (« Could not query the database for the schema cache »).
+
 ## 2. Schéma
 
 Dans **SQL Editor**, coller et exécuter le contenu de `supabase/migrations/20261113000000_init.sql`, puis déclarer le propriétaire :
@@ -57,6 +59,7 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 
 ## Ce qui est vérifié, et ce qui ne l'est pas
 
-- Vérifié hors Supabase : la migration s'applique dans un Postgres embarqué, les écritures du pipeline y passent (y compris une nuit relancée), la vue `edition_today` renvoie les cartes dans l'ordre, et les règles RLS bloquent tout compte autre que le propriétaire.
+- Vérifié sur le vrai projet (13 novembre 2026) : la migration, l'écriture d'une édition par le pipeline (3 cartes, 115 articles classés, texte complet des articles de l'édition), la vue `edition_today`, l'ouverture d'un article par la commande `open` avec le texte lu en base, et le fait qu'un second `open` ne régénère rien. Sans clé, l'API répond 401.
+- Vérifié hors Supabase, dans un Postgres embarqué : les règles RLS bloquent tout compte autre que le propriétaire.
 - Vérifié : la vérification des citations donne les mêmes résultats en Python et en TypeScript (`node --test supabase/functions/open-paper/citations.test.ts`).
-- **Pas encore vérifié** : le pipeline contre un vrai projet Supabase, et l'Edge Function elle-même, qui n'a jamais été exécutée.
+- **Pas encore vérifié** : l'Edge Function `open-paper`, qui n'est pas déployée et n'a jamais été exécutée ; et la lecture depuis l'app avec la session du propriétaire.

@@ -2,6 +2,7 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { AppState } from "react-native";
 
 import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, saveState } from "./data";
 import { emptyState, markOpened, markShown, stateFor, toggleFeedback } from "./logic";
@@ -82,6 +83,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (userId) void refresh();
     else setCards([]);
+  }, [userId, refresh]);
+
+  // Au retour au premier plan : relire l'édition. C'est là qu'on découvre qu'on est hors ligne
+  // (ou revenu en ligne), et qu'une nouvelle édition est arrivée.
+  useEffect(() => {
+    if (!userId) return;
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") void refresh();
+    });
+    return () => sub.remove();
   }, [userId, refresh]);
 
   // Notifications : à la connexion, on demande l'autorisation et on enregistre le jeton du téléphone.

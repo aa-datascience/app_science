@@ -15,7 +15,7 @@ function describe(push: PushState | null): string {
   if (push.state === "enabled") return "On. One in the morning when the edition is ready, one reminder in the evening if it is unfinished. Nothing else.";
   if (push.state === "denied") return "Off: notifications are not allowed for this app. Allow them in Android settings, then tap the button below.";
   if (push.state === "unsupported") return push.reason;
-  return `Could not register this phone: ${push.message}`;
+  return `Could not check this phone's registration (are you offline?). If notifications arrive, nothing is wrong. Details: ${push.message}`;
 }
 
 export default function Settings() {

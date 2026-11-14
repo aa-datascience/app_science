@@ -61,7 +61,8 @@ export function FigureViewer({ image, onClose }: { image: Img | null; onClose: (
   const state = useRef({ scale: 1, x: 0, y: 0, startDist: 0, startScale: 1, lastTap: 0, moved: false });
 
   const reset = () => {
-    state.current = { ...state.current, scale: 1, x: 0, y: 0 };
+    // Modifier l'objet en place : les gestes en cours en gardent une référence (dernier appui, etc.).
+    Object.assign(state.current, { scale: 1, x: 0, y: 0 });
     scale.setValue(1);
     pan.setValue({ x: 0, y: 0 });
   };
@@ -69,16 +70,20 @@ export function FigureViewer({ image, onClose }: { image: Img | null; onClose: (
   const responder = useMemo(
     () =>
       PanResponder.create({
+        // En capture : la zone de la figure prend tous les gestes, avant l'image qu'elle contient.
         onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           state.current.startDist = 0;
           state.current.moved = false;
         },
         onPanResponderMove: (e, g) => {
           const s = state.current;
-          const t = e.nativeEvent.touches;
-          if (t.length >= 2) {
+          const t = e.nativeEvent.touches ?? [];
+          if (g.numberActiveTouches >= 2 && t.length >= 2) {
             const dist = Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
             if (!s.startDist) {
               s.startDist = dist;
@@ -101,7 +106,7 @@ export function FigureViewer({ image, onClose }: { image: Img | null; onClose: (
           if (s.scale <= 1.02) reset();
           if (!s.moved) {
             const now = Date.now();
-            if (now - s.lastTap < 300) {
+            if (now - s.lastTap < 350) {
               // Double appui : zoom x2,5 ou retour à la taille d'origine.
               if (s.scale > 1) reset();
               else {
@@ -125,17 +130,21 @@ export function FigureViewer({ image, onClose }: { image: Img | null; onClose: (
   return (
     <Modal visible animationType="fade" onRequestClose={close} transparent={false} statusBarTranslucent>
       <View style={styles.viewer}>
-        <Animated.View
-          {...responder.panHandlers}
-          style={{ width, height, transform: [{ translateX: pan.x }, { translateY: pan.y }, { scale }] }}
-        >
-          <Image
-            source={{ uri: image.uri, cacheKey: image.cacheKey }}
-            style={{ width, height }}
-            contentFit="contain"
-            cachePolicy="disk"
-          />
-        </Animated.View>
+        {/* Zone de gestes fixe, plein écran ; l'image bouge dessous sans intercepter les appuis. */}
+        <View style={StyleSheet.absoluteFill} {...responder.panHandlers} accessibilityLabel="Figure, zoomable">
+          <Animated.View
+            pointerEvents="none"
+            style={{ width, height, transform: [{ translateX: pan.x }, { translateY: pan.y }, { scale }] }}
+          >
+            <Image
+              source={{ uri: image.uri, cacheKey: image.cacheKey }}
+              style={{ width, height }}
+              contentFit="contain"
+              cachePolicy="disk"
+              pointerEvents="none"
+            />
+          </Animated.View>
+        </View>
         <Pressable onPress={close} style={styles.close} hitSlop={16} accessibilityRole="button" accessibilityLabel="Close figure">
           <Text style={styles.closeLabel}>Close</Text>
         </Pressable>

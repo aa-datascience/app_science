@@ -46,6 +46,7 @@ export default function Today() {
     return (
       <SafeAreaView style={styles.wrap}>
         <EndOfEdition cards={cards} state={state} />
+        {fromCache && <Text style={[styles.muted, styles.offline]}>Offline: showing the edition saved on this device.</Text>}
         <Pressable onPress={() => router.push("/edition")} style={styles.review}>
           <Text style={styles.muted}>Look back at today's papers</Text>
         </Pressable>
@@ -77,4 +78,5 @@ const styles = StyleSheet.create({
   meta: { ...serif, color: colors.text, fontSize: 18 },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 20 },
   review: { padding: space.lg, alignItems: "center" },
+  offline: { textAlign: "center", paddingHorizontal: space.lg },
 });

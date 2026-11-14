@@ -67,6 +67,16 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 - Vérifié sur le vrai projet avec la session du propriétaire (13 novembre 2026, `scripts/test_open_paper.py`) : lecture de `edition_today` (3 cartes), puis `open-paper` a généré, vérifié et stocké le détail d'un article (statut `verified`, 8 affirmations sourcées).
 - Vérifié depuis l'app (navigateur, 13 novembre 2026) : lecture de l'édition, écriture du feedback et des événements de lecture, fin d'édition, et appel de `open-paper`. La fonction a été redéployée avec les en-têtes CORS nécessaires à un navigateur.
 
+## Migrations appliquées sur le projet
+
+| Fichier | Appliquée le |
+| --- | --- |
+| `20261113000000_init.sql` | 13 novembre 2026 |
+| `20261114000000_notifications.sql` | 13 novembre 2026 |
+| `20261115000000_figures.sql` (table `paper_figures`, compartiment privé `figures`) | 14 novembre 2026 |
+
+La fonction `open-paper` déployée compte trois fichiers : `index.ts`, `citations.ts`, `figures.ts` (redéployée le 14 novembre 2026 avec le choix des figures). Les fichiers de `supabase/v2_pending/` ne sont **pas** appliqués.
+
 ## Deux réglages de la fonction à faire à la main
 
 1. **Edge Functions → Secrets** : ajouter `ANTHROPIC_API_KEY` (fait le 13 novembre 2026). Sans elle, la fonction échoue à la génération.

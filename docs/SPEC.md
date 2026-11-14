@@ -51,6 +51,35 @@ Déclenché par l'app quand une carte est ouverte pour la première fois ; en li
 
 Limite à connaître : ce contrôle prouve que la citation figure dans l'article. Il ne prouve pas que la citation appuie l'affirmation, ni que les explications ne disent rien au-delà des affirmations listées. Le badge « vérifié » signifie donc « citations retrouvées dans l'article ».
 
+## Figures
+
+Les cartes et la vue profondeur montrent des figures de l'article, choisies sans appel de modèle supplémentaire.
+
+### Extraction (pipeline, gratuite)
+
+- Depuis la version HTML d'arXiv : chaque figure de premier niveau, avec son label tel qu'imprimé (« 1 », « S1 »), les adresses de toutes ses images (sous-figures comprises, PNG ou SVG) et sa légende complète, équations conservées en LaTeX.
+- Repli sans version HTML : les environnements `figure` de la source LaTeX, numérotés dans l'ordre, avec les fichiers PDF, PNG, JPG ou SVG de l'archive. Les fichiers EPS ne sont pas convertis : une figure qui n'a que de l'EPS est ignorée.
+- Ignorées : les images trop petites à l'affichage (moins de 120 × 60 px, typiquement des logos), les figures sans légende réelle, les tableaux.
+- Le texte complet et les figures des articles retenus sont récupérés avant la génération des cartes, en respectant le délai entre requêtes d'arXiv.
+
+### Choix
+
+- **La nuit**, le prompt de la carte reçoit la liste des figures (label et légende, 700 caractères au plus par légende) et rend le label de la figure qui montre le mieux le résultat principal, ou rien.
+- **À l'ouverture**, le prompt du détail reçoit la même liste et choisit une à trois figures, avec pour chacune une phrase « what to look at ». Les explications peuvent y renvoyer (« Fig. 2 »).
+- Un label qui n'existe pas dans la liste extraite est ignoré ; au plus une figure pour la carte, trois pour le détail. Cette validation est la même dans le pipeline (`figures.py`) et dans l'Edge Function (`figures.ts`), testée sur des cas partagés.
+
+### Stockage
+
+- Table `paper_figures` : toutes les figures des articles de l'édition y sont décrites (label, position, légende, adresses d'origine). Les figures choisies reçoivent un rôle (`card`, `detail`, ou les deux) et, pour le détail, leur phrase « what to look at ».
+- **Seules les figures choisies sont copiées** dans le compartiment privé `figures` de Supabase Storage, converties en WebP, 1400 px de large au plus.
+- La figure d'une carte est copiée la nuit même. Les figures choisies à l'ouverture par l'Edge Function sont copiées par le pipeline de nuit suivant (`sync-figures`) : la fonction ne fait pas de traitement d'image. En attendant, l'app les affiche depuis leur adresse d'origine sur arXiv.
+
+### Dans l'app
+
+- La figure de la carte en haut de la carte ; dans la vue profondeur, chaque figure avec sa phrase « what to look at » et sa légende (LaTeX rendu par KaTeX).
+- Un appui ouvre la figure en plein écran, avec zoom.
+- Les images sont mises en cache sur le téléphone sous une clé stable ; celles des cartes sont chargées dès l'accueil de l'édition.
+
 ## Coût
 
 - **Plafond mensuel** (`budget.monthly_usd`, 15 $ par défaut), nuit et ouvertures confondues.
@@ -60,6 +89,9 @@ Limite à connaître : ce contrôle prouve que la citation figure dans l'article
 - Les mesures de coût sont dans `comparison/`.
 
 ## Conséquences sur le modèle de données (section 9 du doc)
+
+- Nouvelle table `paper_figures` et compartiment de stockage privé `figures` (voir Figures).
+- La carte porte le label de sa figure (`card.figure`) ; le détail porte ses figures (`detail.figures`).
 
 - `contents` est scindé : `cards` (paper_id, carte JSON, modèle, version du prompt, date) et `details` (paper_id, détail JSON, affirmations retirées, statut de vérification, source et mode du texte, modèle, version du prompt, date).
 - `papers.texte complet` est rempli la nuit pour les articles de l'édition.

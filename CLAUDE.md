@@ -15,10 +15,11 @@
 
 ## Commandes (depuis `pipeline/`)
 
-- Tests : `.venv/Scripts/python -m pytest -q` ; citations côté Edge Function, depuis la racine : `node --test supabase/functions/open-paper/citations.test.ts`
+- Tests : `.venv/Scripts/python -m pytest -q` ; côté Edge Function, depuis la racine : `node --test supabase/functions/open-paper/citations.test.ts supabase/functions/open-paper/figures.test.ts`
 - Essai gratuit : `.venv/Scripts/python -m arxiv_digest run --no-llm`
 - Édition du jour, cartes seulement (payant) : `.venv/Scripts/python -m arxiv_digest run` ou `run --batch` (API Batches, pipeline de nuit)
 - Ouverture simulée d'un article (payant) : `.venv/Scripts/python -m arxiv_digest open <arxiv_id>`
+- Copie des figures choisies dans le stockage : `.venv/Scripts/python -m arxiv_digest sync-figures`
 - Notification du matin ou du soir, sans envoi : `.venv/Scripts/python -m arxiv_digest notify morning --dry-run`
 - Essai de coût et de qualité (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
 
@@ -29,6 +30,8 @@
 - Plafond mensuel (`budget.monthly_usd`) : la taille de l'édition est fixée avant tout appel payant (`budget.py`) ; une édition n'est jamais coupée en cours de route.
 - La clé API vit dans `.env` uniquement. Ne jamais commiter `.env`, ne jamais mettre de clé dans `.env.example`.
 - Aucun appel réel à l'API Claude dans les tests.
+- Figures : `figures_for_prompt` et `valid_labels` (`figures.py`) et leur portage `figures.ts` doivent rester identiques, avec un cas dans `pipeline/tests/fixtures/figure_cases.json`. Seules les figures choisies sont copiées dans le stockage.
+- V2 : rien n'est codé. Plan dans `docs/V2_PLAN.md`, migrations non appliquées dans `supabase/v2_pending/`. Ne pas les appliquer ni coder la V2 sans validation explicite.
 - `citations.py` et `supabase/functions/open-paper/citations.ts` doivent rester identiques : toute modification se fait des deux côtés, avec un cas dans `pipeline/tests/fixtures/citation_cases.json`.
 - Sorties des modèles validées par des schémas Pydantic (`models.py`).
 - Contenu généré en anglais ; code commenté et documentation en français.

@@ -43,7 +43,7 @@ Une le matin (« Today's edition is ready — 8 papers »), un rappel le soir se
 
 - Les crons de GitHub peuvent partir avec plusieurs minutes de retard, parfois davantage.
 - GitHub désactive les workflows planifiés d'un dépôt resté 60 jours sans activité ; il suffit de les réactiver dans l'onglet Actions.
-- L'envoi réel d'une notification n'a jamais été testé : il faut l'app et un jeton Expo.
+- Envoi réel : la notification du matin a été envoyée et reçue sur le téléphone le 14 novembre 2026 (APK n° 2, Firebase `arxiv-digest-e1b6a`, clé FCM V1 chez Expo). Le rappel du soir reste à observer : il ne part que s'il reste des cartes non vues.
 
 ## État des vérifications (13 novembre 2026)
 

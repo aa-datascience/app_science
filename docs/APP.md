@@ -15,6 +15,21 @@ Réglages dans `app/.env` (non commité, modèle dans `app/.env.example`) : adre
 
 Vérifications : `npm run typecheck` et `npm test` (logique pure : état de lecture, feedback, récapitulatif, HTML des équations).
 
+## Construire l'APK
+
+L'APK est construit par le service EAS d'Expo (compte `aa-datascience`, projet `arxiv-digest`), puis installé directement sur le téléphone.
+
+```bash
+cd app
+npx eas-cli@latest login      # une fois par machine
+npx eas-cli@latest build --platform android --profile preview
+```
+
+- Le profil `preview` de `app/eas.json` produit un `.apk` et porte l'adresse du projet Supabase et la clé **publique** (le fichier `.env` n'est pas envoyé à Expo).
+- La clé de signature Android est générée et conservée par Expo : les versions suivantes s'installent par-dessus la précédente.
+- À la fin, le terminal affiche un lien et un code QR : ouvrir le lien sur le téléphone, télécharger l'APK, autoriser l'installation depuis le navigateur.
+- Offre gratuite d'Expo : nombre de builds limité par mois, file d'attente possible.
+
 ## Ce qui existe (V1, flux Aujourd'hui)
 
 | Écran | Fichier | Rôle |

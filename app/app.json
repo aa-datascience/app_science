@@ -29,6 +29,16 @@
       "expo-web-browser"
     ],
     "scheme": "arxivdigest",
-    "backgroundColor": "#0e0f11"
+    "backgroundColor": "#0e0f11",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "cc8950ec-0d71-46e9-8a33-067ed697792e"
+      }
+    }
   }
 }

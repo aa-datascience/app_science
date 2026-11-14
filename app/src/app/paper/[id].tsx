@@ -6,14 +6,18 @@ import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { FigureImage, FigureViewer } from "../../components/Figure";
 import { Button, Label, MathText, Toggle } from "../../components/ui";
 import { type DetailResult, loadDetail } from "../../lib/data";
+import { figuresFor } from "../../lib/logic";
 import { useApp } from "../../lib/session";
 import { colors, serif, space } from "../../lib/theme";
+import type { FigureImage as Img } from "../../lib/types";
 
 export default function Paper() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { cards, opened } = useApp();
+  const { cards, figures, refreshFigures, opened } = useApp();
+  const [viewing, setViewing] = useState<Img | null>(null);
   const card = cards.find((c) => c.arxiv_id === id);
   const [result, setResult] = useState<DetailResult | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -25,14 +29,18 @@ export default function Paper() {
     loadDetail(id).then((r) => {
       if (!alive) return;
       setResult(r);
-      if (r.ok) opened(id); // « lu » = la vue profondeur a réellement été affichée
+      if (r.ok) {
+        opened(id); // « lu » = la vue profondeur a réellement été affichée
+        void refreshFigures(id); // le détail vient peut-être de choisir ses figures
+      }
     });
     return () => {
       alive = false;
     };
-  }, [id, attempt, opened]);
+  }, [id, attempt, opened, refreshFigures]);
 
   const openOriginal = () => WebBrowser.openBrowserAsync(`https://arxiv.org/abs/${id}`);
+  const detailFigures = result?.ok ? figuresFor(figures[id] ?? [], result.detail.detail.figures).detail : [];
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.content}>
@@ -85,6 +93,22 @@ export default function Paper() {
             />
           </View>
 
+          {detailFigures.length > 0 && (
+            <View style={styles.section}>
+              <Label>Figures</Label>
+              {detailFigures.map((f) => (
+                <View key={f.label} style={styles.figure}>
+                  {f.images.map((image) => (
+                    <FigureImage key={image.cacheKey} image={image} onPress={() => setViewing(image)} />
+                  ))}
+                  <Text style={styles.figureLabel}>Fig. {f.label}</Text>
+                  {f.what_to_look_at ? <MathText text={f.what_to_look_at} size={16} /> : null}
+                  <MathText text={f.caption} size={14} style={{ color: colors.muted }} />
+                </View>
+              ))}
+            </View>
+          )}
+
           <View style={styles.section}>
             <Label>Before this paper</Label>
             <MathText text={result.detail.detail.context.before} size={16} />
@@ -110,6 +134,7 @@ export default function Paper() {
       )}
 
       <Button label="Original paper on arXiv" kind="quiet" onPress={openOriginal} />
+      <FigureViewer image={viewing} onClose={() => setViewing(null)} />
     </ScrollView>
   );
 }
@@ -122,6 +147,8 @@ const styles = StyleSheet.create({
   section: { gap: space.sm, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   switch: { flexDirection: "row", gap: space.xs, marginBottom: space.sm },
   claim: { gap: space.xs, marginBottom: space.md },
+  figure: { gap: space.sm, marginBottom: space.lg },
+  figureLabel: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" },
   quote: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.sm },
   state: { gap: space.sm, paddingVertical: space.xl },
   stateTitle: { ...serif, color: colors.text, fontSize: 20 },

@@ -4,9 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
 import { supabase } from "./supabase";
-import type { DetailRow, EditionCard, OutboxItem, ReadingState } from "./types";
+import { type FigureDbRow, figureImages } from "./logic";
+import type { DetailRow, EditionCard, OutboxItem, PaperFigure, ReadingState } from "./types";
 
-const K = { edition: "edition:last", state: "state:last", outbox: "outbox", detail: (id: string) => `detail:${id}` };
+const K = {
+  edition: "edition:last",
+  state: "state:last",
+  outbox: "outbox",
+  detail: (id: string) => `detail:${id}`,
+  figures: (id: string) => `figures:${id}`,
+};
 
 async function read<T>(key: string): Promise<T | null> {
   try {
@@ -33,6 +40,50 @@ export async function loadEdition(): Promise<{ cards: EditionCard[]; fromCache: 
 
 export const loadState = () => read<ReadingState>(K.state);
 export const saveState = (s: ReadingState) => write(K.state, s);
+
+// ---------- figures ----------
+
+const SIGNED_FOR_SECONDS = 60 * 60 * 24 * 30;
+
+/**
+ * Figures choisies (carte ou vue profondeur) des articles donnés, par article.
+ * Réseau d'abord ; hors ligne, ce qui a été vu la dernière fois (les images sont en cache).
+ */
+export async function loadFigures(paperIds: string[]): Promise<Record<string, PaperFigure[]>> {
+  const out: Record<string, PaperFigure[]> = {};
+  if (!paperIds.length) return out;
+  const { data, error } = await supabase
+    .from("paper_figures")
+    .select("paper_id,label,position,caption,roles,what_to_look_at,sources,storage_paths,stored")
+    .in("paper_id", paperIds)
+    .neq("roles", "{}")
+    .order("position");
+  if (error || !data) {
+    for (const id of paperIds) out[id] = (await read<PaperFigure[]>(K.figures(id))) ?? [];
+    return out;
+  }
+  const rows = data as FigureDbRow[];
+  const paths = rows.flatMap((r) => (r.stored ? r.storage_paths : []));
+  const signed: Record<string, string> = {};
+  if (paths.length) {
+    const res = await supabase.storage.from("figures").createSignedUrls(paths, SIGNED_FOR_SECONDS);
+    for (const item of res.data ?? []) if (item.path && item.signedUrl) signed[item.path] = item.signedUrl;
+  }
+  for (const id of paperIds) out[id] = [];
+  for (const r of rows) {
+    out[r.paper_id]?.push({
+      paper_id: r.paper_id,
+      label: r.label,
+      position: r.position,
+      caption: r.caption,
+      roles: r.roles,
+      what_to_look_at: r.what_to_look_at,
+      images: figureImages(r, signed),
+    });
+  }
+  await Promise.all(paperIds.map((id) => write(K.figures(id), out[id])));
+  return out;
+}
 
 // ---------- détail d'un article ----------
 

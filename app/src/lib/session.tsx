@@ -3,15 +3,17 @@
 import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
-import { enqueue, flushOutbox, loadEdition, loadState, saveState } from "./data";
+import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, saveState } from "./data";
 import { emptyState, markOpened, markShown, stateFor, toggleFeedback } from "./logic";
 import { supabase } from "./supabase";
-import type { EditionCard, FeedbackType, ReadingState } from "./types";
+import type { EditionCard, FeedbackType, PaperFigure, ReadingState } from "./types";
 
 type Ctx = {
   session: Session | null;
   ready: boolean; // la session enregistrée a été relue
   cards: EditionCard[];
+  figures: Record<string, PaperFigure[]>; // figures choisies, par article
+  refreshFigures: (paperId: string) => Promise<void>; // après la génération d'un détail
   state: ReadingState;
   loading: boolean;
   fromCache: boolean;
@@ -34,6 +36,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [cards, setCards] = useState<EditionCard[]>([]);
+  const [figures, setFigures] = useState<Record<string, PaperFigure[]>>({});
   const [state, setState] = useState<ReadingState>(emptyState(""));
   const [loading, setLoading] = useState(false);
   const [fromCache, setFromCache] = useState(false);
@@ -66,7 +69,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     update({ ...saved, completed });
     setLoading(false);
     void flushOutbox();
+    setFigures(await loadFigures(result.cards.map((c) => c.arxiv_id)));
   }, [update]);
+
+  const refreshFigures = useCallback(async (paperId: string) => {
+    const fresh = await loadFigures([paperId]);
+    setFigures((all) => ({ ...all, ...fresh }));
+  }, []);
 
   const userId = session?.user.id;
   useEffect(() => {
@@ -115,7 +124,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [update]);
 
   return (
-    <Context.Provider value={{ session, ready, cards, state, loading, fromCache, refresh, shown, opened, feedback, complete }}>
+    <Context.Provider value={{
+        session, ready, cards, figures, refreshFigures, state, loading, fromCache, refresh, shown, opened, feedback,
+        complete,
+      }}>
       {children}
     </Context.Provider>
   );

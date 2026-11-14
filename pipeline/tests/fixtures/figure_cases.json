@@ -1,0 +1,16 @@
+{
+  "figures": [
+    { "label": "1", "caption": "Device geometry. (a) Micrograph with $V_{\\mathrm{G}}$ gate." },
+    { "label": "2", "caption": "Conductance versus gate voltage — µeV scale, with Δ* extracted." },
+    { "label": "S1", "caption": "Supplementary: additional devices." }
+  ],
+  "long_caption_chars": 900,
+  "prompt": "[1] Device geometry. (a) Micrograph with $V_{\\mathrm{G}}$ gate.\n[2] Conductance versus gate voltage — µeV scale, with Δ* extracted.\n[S1] Supplementary: additional devices.",
+  "labels": [
+    { "chosen": ["2", "S1"], "limit": 3, "expected": ["2", "S1"] },
+    { "chosen": ["7", "S1", "[1]", "S1", "Fig. 1", "Figure 2"], "limit": 3, "expected": ["S1", "1", "2"] },
+    { "chosen": ["1", "2", "S1"], "limit": 1, "expected": ["1"] },
+    { "chosen": ["", " 2 ", "s1"], "limit": 3, "expected": ["2"] },
+    { "chosen": [], "limit": 3, "expected": [] }
+  ]
+}

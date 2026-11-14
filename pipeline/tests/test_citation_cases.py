@@ -20,7 +20,8 @@ def test_normalize():
 def test_check_claims(case):
     claims = [Claim(statement=f"s{i}", quote=q) for i, q in enumerate(case["quotes"])]
     detail = Detail(
-        explanation_lay="l", explanation_expert="e", context=Context(before="b", change="c", limitations="l"), claims=claims
+        explanation_lay="l", explanation_expert="e", context=Context(before="b", change="c", limitations="l"), claims=claims,
+        figures=[],
     )
     checked, removed, status = check_claims(detail, CASES["text"])
     assert [claims.index(r) for r in removed] == case["removed"]

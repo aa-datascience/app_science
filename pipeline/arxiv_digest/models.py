@@ -66,6 +66,26 @@ class Ranked(BaseModel):
     final_score: float = 0.0
 
 
+# ---------- Figures ----------
+
+
+class Figure(BaseModel):
+    """Une figure extraite de l'article : de quoi laisser un modèle choisir, et retrouver l'image."""
+
+    label: str  # « 1 », « 2 », « S1 »… tel qu'imprimé dans l'article
+    caption: str  # légende complète, LaTeX conservé
+    images: list[str]  # adresses d'origine (sous-figures comprises) ; « eprint:fichier » pour la source LaTeX
+
+
+class StoredFigure(Figure):
+    """Une figure telle qu'elle est stockée, avec son rôle une fois choisie."""
+
+    roles: list[Literal["card", "detail"]] = []
+    what_to_look_at: str = ""
+    storage_paths: list[str] = []  # images WebP copiées dans le stockage (figures choisies seulement)
+    stored: bool = False
+
+
 # ---------- Contenu généré ----------
 
 
@@ -77,6 +97,7 @@ class Card(BaseModel):
     why_it_matters: str = Field(description="One sentence: why it matters")
     tags: list[str]
     difficulty: int = Field(description="1-5")
+    figure: str = Field(description="Label of the one figure that best illustrates the main result, or an empty string")
 
     _c = field_validator("difficulty")(_clamp)
 
@@ -92,6 +113,11 @@ class Claim(BaseModel):
     quote: str = Field(description="Passage copied character for character from the paper, supporting the claim")
 
 
+class FigureNote(BaseModel):
+    label: str = Field(description="Label of a figure from the list given, exactly as written there")
+    what_to_look_at: str = Field(description="One sentence telling the reader what to notice in this figure")
+
+
 class Detail(BaseModel):
     """Détail généré à l'ouverture d'un article, à partir du texte complet."""
 
@@ -99,6 +125,7 @@ class Detail(BaseModel):
     explanation_expert: str = Field(description="300-500 words, physics master's level, LaTeX in $...$ / $$...$$")
     context: Context
     claims: list[Claim]
+    figures: list[FigureNote] = Field(description="One to three figures that best support the explanation; empty if none is listed")
 
 
 class StoredDetail(BaseModel):

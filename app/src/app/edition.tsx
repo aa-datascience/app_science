@@ -17,15 +17,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EndOfEdition } from "../components/EndOfEdition";
+import { FigureImage, FigureViewer } from "../components/Figure";
 import { Label, MathText, Tags, Toggle } from "../components/ui";
+import { figuresFor } from "../lib/logic";
 import { useApp } from "../lib/session";
 import { colors, serif, space } from "../lib/theme";
-import type { EditionCard, FeedbackType } from "../lib/types";
+import type { EditionCard, FeedbackType, FigureImage as Img, PaperFigure } from "../lib/types";
 
 type Page = { key: string; card: EditionCard | null }; // card null = écran de fin
 
 export default function Edition() {
-  const { cards, state, shown, feedback, complete } = useApp();
+  const { cards, figures, state, shown, feedback, complete } = useApp();
+  const [viewing, setViewing] = useState<Img | null>(null);
   const { width } = useWindowDimensions();
   const list = useRef<FlatList<Page>>(null);
   const start = state.completed ? 0 : Math.min(state.index, Math.max(0, cards.length - 1));
@@ -82,6 +85,8 @@ export default function Edition() {
             {item.card ? (
               <CardPage
                 card={item.card}
+                figure={figuresFor(figures[item.card.arxiv_id] ?? []).card}
+                onFigure={setViewing}
                 given={state.feedback[item.card.arxiv_id] ?? []}
                 onFeedback={(t) => feedback(item.card!.arxiv_id, t)}
               />
@@ -91,6 +96,8 @@ export default function Edition() {
           </View>
         )}
       />
+
+      <FigureViewer image={viewing} onClose={() => setViewing(null)} />
 
       <View style={styles.nav}>
         <Pressable onPress={() => go(index - 1)} disabled={index === 0} hitSlop={12} accessibilityRole="button">
@@ -112,10 +119,14 @@ export default function Edition() {
 
 function CardPage({
   card,
+  figure,
+  onFigure,
   given,
   onFeedback,
 }: {
   card: EditionCard;
+  figure: PaperFigure | null;
+  onFigure: (image: Img) => void;
   given: FeedbackType[];
   onFeedback: (t: FeedbackType) => void;
 }) {
@@ -124,6 +135,7 @@ function CardPage({
   return (
     <ScrollView contentContainerStyle={styles.card}>
       {card.slot === "exploration" && <Text style={styles.badge}>Exploration · outside your usual fields</Text>}
+      {figure ? <FigureImage image={figure.images[0]} onPress={() => onFigure(figure.images[0])} /> : null}
       <Pressable onPress={() => router.push(`/paper/${card.arxiv_id}`)} accessibilityRole="button" style={styles.body}>
         <MathText text={c.plain_title} size={25} style={styles.title} />
         <View>

@@ -26,7 +26,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image"
     ],
     "scheme": "arxivdigest",
     "backgroundColor": "#0e0f11",

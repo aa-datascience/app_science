@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 from .arxiv import fetch_feeds, new_submissions
 from .budget import affordable_size, can_open, estimate_cost, month_spent
 from .config import REPO_ROOT, Config, load_config
+from .figures import sync_figures
 from .fulltext import fetch_fulltext
 from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused
 from .models import Candidate, Edition, EditionItem, Paper, Ranked
@@ -55,14 +56,19 @@ def ingest(
 
 
 def fetch_article(paper: Paper, cfg: Config, mode: str | None = None) -> Article:
-    text, source, truncated = fetch_fulltext(
+    full = fetch_fulltext(
         paper,
         user_agent=cfg.arxiv.user_agent,
         delay_seconds=cfg.arxiv.delay_seconds,
         max_chars=cfg.arxiv.max_fulltext_chars,
     )
-    art = make_article(paper, text, source, truncated, mode or cfg.fulltext.mode)
-    log.info("article %s: texte via %s, mode %s (%d caractères)", paper.arxiv_id, source, art.mode, len(art.text))
+    art = make_article(
+        paper, full.text, full.source, full.truncated, mode or cfg.fulltext.mode, full.figures, full.assets
+    )
+    log.info(
+        "article %s: texte via %s, mode %s (%d caractères), %d figures",
+        paper.arxiv_id, full.source, art.mode, len(art.text), len(art.figures),
+    )
     return art
 
 
@@ -136,8 +142,15 @@ def run(
 
         selected = select_edition(ranked, cfg, target_size)
 
-        # Cartes : titre et résumé seulement, un appel par article
-        cards, version = make_cards(llm, [r.candidate.paper for r in selected], cfg, batch=batch)
+        # Texte complet et figures des articles retenus (gratuit : aucun modèle). Les légendes
+        # servent au choix de la figure de la carte ; le texte est stocké pour l'ouverture.
+        articles = {r.candidate.paper.arxiv_id: fetch_article(r.candidate.paper, cfg) for r in selected}
+
+        # Cartes : titre, résumé et légendes des figures, un appel par article
+        cards, version = make_cards(
+            llm, [r.candidate.paper for r in selected], cfg, batch=batch,
+            figures={aid: a.figures for aid, a in articles.items()},
+        )
         for r in selected:
             card = cards.get(r.candidate.paper.arxiv_id)
             if card is not None:
@@ -155,10 +168,7 @@ def run(
                 )
         if len(items) < len(selected):
             notes.append(f"{len(selected) - len(items)} cartes en erreur, articles retirés de l'édition.")
-
-        # Texte complet des articles de l'édition, stocké pour l'ouverture (gratuit : aucun modèle).
-        if store.wants_fulltext:
-            articles = {i.paper.arxiv_id: fetch_article(i.paper, cfg) for i in items}
+        articles = {i.paper.arxiv_id: articles[i.paper.arxiv_id] for i in items}
     except BatchFailed as e:
         notes.append(str(e))
         log.error("%s", e)
@@ -176,6 +186,18 @@ def run(
     path = out / "editions" / f"{day}.json"
     try:
         store.save_night(cfg, edition, ranked, articles)
+        # Figures : toutes sont décrites en base (pour le choix à l'ouverture) ; seule celle de la
+        # carte est copiée dans le stockage.
+        for item in items:
+            art = articles[item.paper.arxiv_id]
+            store.save_figures(item.paper.arxiv_id, art.figures)
+            if item.card.figure:
+                store.mark_figures(item.paper.arxiv_id, "card", {item.card.figure: ""})
+        n_fig, fig_bytes = sync_figures(
+            store, user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds,
+            assets={aid: a.assets for aid, a in articles.items() if a.assets},
+        )
+        log.info("figures: %d copiées, %d Ko", n_fig, fig_bytes // 1024)
     except httpx.HTTPError as e:
         body = e.response.text[:300] if isinstance(e, httpx.HTTPStatusError) else ""
         log.error("écriture en base impossible: %s %s (copie locale : %s)", e, body, path)
@@ -218,7 +240,12 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
 
     llm = LLM(cfg, store.log_usage, day)
     try:
-        detail = generate_detail(llm, store.article(paper) or fetch_article(paper, cfg), cfg)
+        art = store.article(paper)
+        if art is None:
+            art = fetch_article(paper, cfg)
+            art.figures = list(store.get_figures(arxiv_id)) or art.figures
+            store.save_figures(arxiv_id, art.figures)
+        detail = generate_detail(llm, art, cfg)
     except anthropic.AuthenticationError:
         log.error("clé API Anthropic absente ou invalide (voir .env.example)")
         return 2
@@ -226,9 +253,15 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
         log.error("détail %s: échec (%r)", arxiv_id, e)
         return 1
     store.save_detail(detail)
+    store.mark_figures(arxiv_id, "detail", {f.label: f.what_to_look_at for f in detail.detail.figures})
+    n_fig, _ = sync_figures(
+        store, user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds,
+        assets={arxiv_id: art.assets} if art.assets else None,
+    )
     print(
         f"Détail {arxiv_id}: {detail.verification_status}, {len(detail.detail.claims)} affirmations sourcées, "
-        f"{len(detail.removed_claims)} retirées, {llm.run_spent:.4f}$"
+        f"{len(detail.removed_claims)} retirées, {len(detail.detail.figures)} figures choisies "
+        f"({n_fig} copiées), {llm.run_spent:.4f}$"
     )
     return 0
 
@@ -251,6 +284,11 @@ def main(argv: list[str] | None = None) -> int:
                    help="si le flux arXiv n'est pas à jour : attendre (ne rien faire) ou puiser dans la réserve")
     p.add_argument("--force", action="store_true", help="refait l'édition même si elle est déjà prête")
 
+    sub.add_parser(
+        "sync-figures", parents=[common],
+        help="copie dans le stockage les figures choisies qui n'y sont pas encore (WebP, 1400 px max)",
+    )
+
     nt = sub.add_parser("notify", parents=[common], help="envoie la notification du matin ou du soir si elle est due")
     nt.add_argument("kind", choices=["morning", "evening"])
     nt.add_argument("--dry-run", action="store_true", help="décide et affiche, sans envoyer ni marquer")
@@ -271,6 +309,14 @@ def main(argv: list[str] | None = None) -> int:
     for noisy in ("httpx", "anthropic"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     load_dotenv(REPO_ROOT / ".env")
+
+    if args.command == "sync-figures":
+        cfg = load_config(args.config)
+        n, size = sync_figures(
+            make_store(args.out), user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds
+        )
+        print(f"Figures copiées dans le stockage : {n} ({size // 1024} Ko).")
+        return 0
 
     if args.command == "notify":
         from .notify import notify

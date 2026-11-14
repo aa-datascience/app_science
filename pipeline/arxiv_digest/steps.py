@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import anthropic
 
 from .citations import check_claims
 from .config import REPO_ROOT, Config
+from .figures import figures_for_prompt, valid_labels
 from .fulltext import select_sections
 from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused, Req
-from .models import Candidate, Card, Detail, Paper, RankBatch, Ranked, StoredDetail
+from .models import Candidate, Card, Detail, Figure, Paper, RankBatch, Ranked, StoredDetail
 
 log = logging.getLogger(__name__)
 PROMPTS = REPO_ROOT / "prompts"
@@ -28,14 +29,25 @@ class Article:
     source: str  # html | latex | pdf | abstract
     truncated: bool = False
     mode: str = "full"  # full | sections (ce qui a réellement été envoyé)
+    figures: list[Figure] = field(default_factory=list)
+    assets: dict[str, bytes] = field(default_factory=dict)  # images de l'archive LaTeX (repli)
 
 
-def make_article(paper: Paper, text: str, source: str, truncated: bool, mode: str) -> Article:
+def make_article(
+    paper: Paper,
+    text: str,
+    source: str,
+    truncated: bool,
+    mode: str,
+    figures: list[Figure] | None = None,
+    assets: dict[str, bytes] | None = None,
+) -> Article:
+    figures, assets = figures or [], assets or {}
     if mode == "sections" and source in ("html", "latex"):
         reduced, ok = select_sections(text)
         if ok:
-            return Article(paper, reduced, source, truncated, "sections")
-    return Article(paper, text, source, truncated, "full")
+            return Article(paper, reduced, source, truncated, "sections", figures, assets)
+    return Article(paper, text, source, truncated, "full", figures, assets)
 
 
 def load_prompt(name: str, prompts_dir: Path = PROMPTS) -> tuple[str, str]:
@@ -89,7 +101,7 @@ def rank(llm: LLM, candidates: list[Candidate], cfg: Config) -> list[Ranked]:
 # ---------- La nuit : cartes, à partir du titre et du résumé ----------
 
 
-def card_req(paper: Paper, cfg: Config, label: str = "") -> tuple[Req, str]:
+def card_req(paper: Paper, cfg: Config, label: str = "", figures: list[Figure] | None = None) -> tuple[Req, str]:
     system, _ = load_prompt("system")
     template, version = load_prompt("card")
     prompt = render(
@@ -99,6 +111,7 @@ def card_req(paper: Paper, cfg: Config, label: str = "") -> tuple[Req, str]:
         arxiv_id=paper.arxiv_id,
         categories=", ".join(paper.categories),
         abstract=paper.abstract,
+        figures=figures_for_prompt(figures or []),
     )
     req = Req(
         step="card",
@@ -113,13 +126,20 @@ def card_req(paper: Paper, cfg: Config, label: str = "") -> tuple[Req, str]:
 
 
 def make_cards(
-    llm: LLM, papers: list[Paper], cfg: Config, *, batch: bool, label: str = ""
+    llm: LLM,
+    papers: list[Paper],
+    cfg: Config,
+    *,
+    batch: bool,
+    label: str = "",
+    figures: dict[str, list[Figure]] | None = None,
 ) -> tuple[dict[str, Card], str]:
     """Une carte par article. Renvoie (cartes abouties par identifiant arXiv, version du prompt).
 
     batch=True : un seul lot via l'API Batches (-50 %), pour le pipeline de nuit.
     """
-    built = [card_req(p, cfg, label) for p in papers]
+    figures = figures or {}
+    built = [card_req(p, cfg, label, figures.get(p.arxiv_id)) for p in papers]
     version = built[0][1] if built else ""
     reqs = [r for r, _ in built]
     results = None
@@ -140,6 +160,8 @@ def make_cards(
         if isinstance(res, Exception):
             log.warning("carte %s: %r", p.arxiv_id, res)
         else:
+            # Le label choisi doit exister dans la liste extraite ; sinon, pas de figure.
+            res.figure = next(iter(valid_labels([res.figure], figures.get(p.arxiv_id, []), 1)), "")
             cards[p.arxiv_id] = res
     return cards, version
 
@@ -175,6 +197,7 @@ def detail_req(art: Article, cfg: Config, label: str = "") -> tuple[Req, str]:
         arxiv_id=paper.arxiv_id,
         categories=", ".join(paper.categories),
         level=cfg.profile.levels.get(paper.primary_category, "intermediate"),
+        figures=figures_for_prompt(art.figures),
     )
     req = Req(
         step="detail",
@@ -196,6 +219,12 @@ def generate_detail(llm: LLM, art: Article, cfg: Config, label: str = "") -> Sto
     req, version = detail_req(art, cfg, label)
     detail = llm.run(req)
     checked, removed, status = check_claims(detail, art.text)
+    # Figures : seuls les labels présents dans la liste extraite sont gardés, trois au plus.
+    kept = valid_labels([f.label for f in checked.figures], art.figures, 3)
+    notes = {f.label.strip(' []'): f for f in checked.figures}
+    checked = checked.model_copy(
+        update={"figures": [notes[k].model_copy(update={"label": k}) for k in kept if k in notes]}
+    )
     log.info(
         "détail %s: %d affirmations, %d retirées -> %s",
         art.paper.arxiv_id, len(detail.claims), len(removed), status,

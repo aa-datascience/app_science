@@ -6,8 +6,9 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EndOfEdition } from "../../components/EndOfEdition";
+import { Preload } from "../../components/Figure";
 import { Button } from "../../components/ui";
-import { editionLabel } from "../../lib/logic";
+import { editionLabel, figuresFor } from "../../lib/logic";
 import { useApp } from "../../lib/session";
 import { colors, serif, space } from "../../lib/theme";
 
@@ -17,7 +18,9 @@ function formatDate(iso: string): string {
 }
 
 export default function Today() {
-  const { cards, state, loading, fromCache, refresh } = useApp();
+  const { cards, figures, state, loading, fromCache, refresh } = useApp();
+  // Les figures des cartes sont chargées dès l'accueil, pour être lisibles hors ligne ensuite.
+  const cardImages = cards.flatMap((c) => figuresFor(figures[c.arxiv_id] ?? []).card?.images.slice(0, 1) ?? []);
 
   if (loading && !cards.length) {
     return (
@@ -53,6 +56,7 @@ export default function Today() {
   const started = state.shown.length > 0;
   return (
     <SafeAreaView style={styles.wrap}>
+      <Preload images={cardImages} />
       <View style={styles.home}>
         <Text style={styles.date}>{formatDate(cards[0].date)}</Text>
         <Text style={styles.title}>Today's edition</Text>

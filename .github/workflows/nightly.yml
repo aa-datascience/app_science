@@ -40,6 +40,13 @@ jobs:
           cache-dependency-path: pipeline/pyproject.toml
       # Installation en mode éditable : le paquet lit config.yaml et prompts/ à la racine du dépôt.
       - run: pip install -e ./pipeline
+      # Les figures choisies dans la journée par open-paper sont copiées ici (WebP, 1400 px au plus).
+      - name: Copier les figures choisies à l'ouverture
+        working-directory: pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python -m arxiv_digest sync-figures
       - name: Construire l'édition
         working-directory: pipeline
         env:

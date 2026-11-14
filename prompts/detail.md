@@ -5,11 +5,16 @@ Authors: {{authors}}
 arXiv: {{arxiv_id}} [{{categories}}]
 Reader level in this subfield: {{level}}
 
+Figures of the paper, as [label] caption:
+{{figures}}
+
 What to produce:
 - explanation_lay: 150 to 250 words for an educated non-specialist. No formulas. Explain the physical idea, not the paper's structure.
 - explanation_expert: 300 to 500 words for a physics master's student. Give the setup, the method, the key result and how it was obtained, with the essential equations.
 - context: what was known before; what this paper changes; its limitations and possible criticisms. Limitations are mandatory: if the authors state none, give the ones a careful referee would raise and say they are yours.
 - claims: every factual claim your entry makes about the paper (results, numbers, methods, comparisons with prior work), each with the passage from the paper that supports it.
+
+- figures: one to three figures from the list above that best support your explanation, in the order a reader should look at them. For each, copy its label exactly as it appears in brackets, and write one sentence `what_to_look_at` saying what to notice in it (which curve, which axis, which feature) and what it shows. You can refer to them in the explanations as "Fig. 2". Leave the list empty if no figure is listed.
 
 How the quotes are used: a program, not a person, searches for each quote in the paper's text. A claim whose quote is not found is deleted, and if too many are deleted the whole entry is shown to the reader as unverified. So for each quote:
 - Copy it character for character from the text above: one or two consecutive sentences, or part of one sentence. Do not paraphrase, shorten, merge passages, fix typos or use an ellipsis.

@@ -19,7 +19,7 @@ import anthropic
 import httpx
 
 from .config import Config
-from .models import Candidate, Detail, Edition, Paper, Ranked, RankItem, StoredDetail
+from .models import Candidate, Detail, Edition, Figure, Paper, Ranked, RankItem, StoredDetail, StoredFigure
 from .steps import SOURCE_NOTES, Article, load_prompt
 
 log = logging.getLogger(__name__)
@@ -98,7 +98,11 @@ class LocalStore:
 
     def get_detail(self, arxiv_id: str) -> StoredDetail | None:
         path = self.out / "details" / f"{arxiv_id}.json"
-        return StoredDetail.model_validate(_read_json(path, {})) if path.exists() else None
+        if not path.exists():
+            return None
+        row = _read_json(path, {})
+        row["detail"].setdefault("figures", [])  # détails écrits avant les figures
+        return StoredDetail.model_validate(row)
 
     # --- écriture ---
 
@@ -130,6 +134,50 @@ class LocalStore:
 
     def save_detail(self, detail: StoredDetail) -> None:
         _write_json(self.out / "details" / f"{detail.arxiv_id}.json", detail.model_dump())
+
+    # --- figures ---
+
+    def _figures_path(self, paper_id: str) -> Path:
+        return self.out / "figures" / f"{paper_id}.json"
+
+    def get_figures(self, paper_id: str) -> list[StoredFigure]:
+        return [StoredFigure.model_validate(f) for f in _read_json(self._figures_path(paper_id), [])]
+
+    def _write_figures(self, paper_id: str, figures: list[StoredFigure]) -> None:
+        _write_json(self._figures_path(paper_id), [f.model_dump() for f in figures])
+
+    def save_figures(self, paper_id: str, figures: list[Figure]) -> None:
+        """Enregistre les figures extraites, sans toucher au rôle de celles déjà connues."""
+        known = {f.label: f for f in self.get_figures(paper_id)}
+        self._write_figures(paper_id, [known.get(f.label) or StoredFigure(**f.model_dump()) for f in figures])
+
+    def mark_figures(self, paper_id: str, role: str, notes: dict[str, str]) -> None:
+        """Donne un rôle (« card » ou « detail ») aux figures choisies ; `notes` : label -> what to look at."""
+        figures = self.get_figures(paper_id)
+        for f in figures:
+            if f.label in notes:
+                f.roles = sorted({*f.roles, role})
+                f.what_to_look_at = notes[f.label] or f.what_to_look_at
+        self._write_figures(paper_id, figures)
+
+    def pending_figures(self) -> list[tuple[str, StoredFigure]]:
+        """Figures choisies dont les images ne sont pas encore copiées."""
+        out = []
+        for path in sorted((self.out / "figures").glob("*.json")):
+            out += [(path.stem, f) for f in self.get_figures(path.stem) if f.roles and not f.stored]
+        return out
+
+    def upload_figure(self, path: str, data: bytes) -> None:
+        target = self.out / "figures" / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+
+    def set_figure_stored(self, paper_id: str, label: str, paths: list[str]) -> None:
+        figures = self.get_figures(paper_id)
+        for f in figures:
+            if f.label == label:
+                f.storage_paths, f.stored = paths, True
+        self._write_figures(paper_id, figures)
 
 
 def _paper_row(p: Paper) -> dict:
@@ -164,6 +212,7 @@ class SupabaseStore:
 
     def __init__(self, url: str, service_key: str, out: Path, client: httpx.Client | None = None):
         self.local = LocalStore(out)
+        self.storage_url = url.rstrip("/") + "/storage/v1"
         self.http = client or httpx.Client(
             base_url=url.rstrip("/") + "/rest/v1",
             headers={"apikey": service_key, "Authorization": f"Bearer {service_key}"},
@@ -261,13 +310,17 @@ class SupabaseStore:
         row = self._paper_row(paper.arxiv_id)
         if not row or not row.get("full_text"):
             return None
-        return Article(paper, row["full_text"], row["text_source"], row["text_truncated"], row["text_mode"])
+        return Article(
+            paper, row["full_text"], row["text_source"], row["text_truncated"], row["text_mode"],
+            figures=list(self.get_figures(paper.arxiv_id)),
+        )
 
     def get_detail(self, arxiv_id: str) -> StoredDetail | None:
         rows = self._get("details", select="*", paper_id=f"eq.{arxiv_id}")
         if not rows:
             return None
         r = rows[0]
+        r["detail"].setdefault("figures", [])  # détails écrits avant les figures
         return StoredDetail(
             arxiv_id=r["paper_id"], detail=r["detail"], removed_claims=r["removed_claims"],
             verification_status=r["verification_status"], text_source=r["text_source"],
@@ -319,7 +372,8 @@ class SupabaseStore:
         # L'édition n'est marquée prête qu'à la fin, une fois ses cartes en base.
         self._upsert(
             "editions",
-            [{"date": day, "status": "pending", "cost_usd": edition.cost_usd, "notes": edition.notes}],
+            # completed_at remis à zéro : une édition refaite (--force) n'a pas encore été lue.
+            [{"date": day, "status": "pending", "cost_usd": edition.cost_usd, "notes": edition.notes, "completed_at": None}],
             "date",
         )
         self.http.delete("/edition_items", params={"edition_date": f"eq.{day}"}).raise_for_status()
@@ -345,6 +399,66 @@ class SupabaseStore:
         row = detail.model_dump()
         row["paper_id"] = row.pop("arxiv_id")
         self._upsert("details", [row], "paper_id")
+
+    # --- figures ---
+
+    def get_figures(self, paper_id: str) -> list[StoredFigure]:
+        rows = self._get("paper_figures", select="*", paper_id=f"eq.{paper_id}", order="position")
+        return [
+            StoredFigure(
+                label=r["label"], caption=r["caption"], images=r["sources"], roles=r["roles"],
+                what_to_look_at=r["what_to_look_at"] or "", storage_paths=r["storage_paths"], stored=r["stored"],
+            )
+            for r in rows
+        ]
+
+    def save_figures(self, paper_id: str, figures: list[Figure]) -> None:
+        """Enregistre les figures extraites ; ne touche ni au rôle ni aux images déjà copiées."""
+        self._upsert(
+            "paper_figures",
+            [
+                {"paper_id": paper_id, "label": f.label, "position": i, "caption": f.caption, "sources": f.images}
+                for i, f in enumerate(figures)
+            ],
+            "paper_id,label",
+        )
+
+    def mark_figures(self, paper_id: str, role: str, notes: dict[str, str]) -> None:
+        for f in self.get_figures(paper_id):
+            if f.label not in notes:
+                continue
+            body = {"roles": sorted({*f.roles, role})}
+            if notes[f.label]:
+                body["what_to_look_at"] = notes[f.label]
+            self.http.patch(
+                "/paper_figures", params={"paper_id": f"eq.{paper_id}", "label": f"eq.{f.label}"}, json=body
+            ).raise_for_status()
+
+    def pending_figures(self) -> list[tuple[str, StoredFigure]]:
+        rows = self._get("paper_figures", select="*", stored="is.false", roles="neq.{}", order="paper_id,position")
+        return [
+            (
+                r["paper_id"],
+                StoredFigure(label=r["label"], caption=r["caption"], images=r["sources"], roles=r["roles"],
+                             what_to_look_at=r["what_to_look_at"] or ""),
+            )
+            for r in rows
+        ]
+
+    def upload_figure(self, path: str, data: bytes) -> None:
+        """Dépose une image dans le compartiment privé « figures » de Supabase Storage."""
+        self.http.post(
+            f"{self.storage_url}/object/figures/{path}",
+            content=data,
+            headers={"Content-Type": "image/webp", "x-upsert": "true"},
+        ).raise_for_status()
+
+    def set_figure_stored(self, paper_id: str, label: str, paths: list[str]) -> None:
+        self.http.patch(
+            "/paper_figures",
+            params={"paper_id": f"eq.{paper_id}", "label": f"eq.{label}"},
+            json={"storage_paths": paths, "stored": True},
+        ).raise_for_status()
 
 
 def make_store(out: Path) -> LocalStore | SupabaseStore:

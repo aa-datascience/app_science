@@ -1,6 +1,6 @@
 // Logique pure, sans dépendance à React Native : testée par `npm test` (node --test).
 
-import type { EditionCard, FeedbackType, ReadingState } from "./types.ts";
+import type { EditionCard, FeedbackType, FigureImage, PaperFigure, ReadingState } from "./types.ts";
 
 export const MINUTES_PER_PAPER = 3;
 
@@ -113,3 +113,43 @@ export function buildMathHtml(text: string, colors: HtmlColors, fontSize = 17): 
 }
 
 export const hasMath = (text: string) => text.includes("$");
+
+/** Ligne de paper_figures telle que la base la renvoie. */
+export type FigureDbRow = {
+  paper_id: string;
+  label: string;
+  position: number;
+  caption: string;
+  roles: ("card" | "detail")[];
+  what_to_look_at: string | null;
+  sources: string[];
+  storage_paths: string[];
+  stored: boolean;
+};
+
+/**
+ * Images à afficher pour une figure : la copie du stockage (adresses signées) si elle existe, sinon
+ * les adresses d'origine sur arXiv. La clé de cache ne dépend pas de la signature, qui change.
+ */
+export function figureImages(row: FigureDbRow, signed: Record<string, string>): FigureImage[] {
+  if (row.stored && row.storage_paths.length) {
+    return row.storage_paths.filter((p) => signed[p]).map((p) => ({ uri: signed[p], cacheKey: `figures/${p}` }));
+  }
+  return row.sources.filter((u) => /^https?:\/\//.test(u)).map((u) => ({ uri: u, cacheKey: u }));
+}
+
+/** La figure de la carte (une au plus) et celles de la vue profondeur, dans l'ordre choisi par le modèle. */
+export function figuresFor(
+  figures: PaperFigure[],
+  order: { label: string }[] = [],
+): { card: PaperFigure | null; detail: PaperFigure[] } {
+  const usable = figures.filter((f) => f.images.length);
+  const rank = (f: PaperFigure) => {
+    const i = order.findIndex((o) => o.label === f.label);
+    return i < 0 ? 1000 + f.position : i;
+  };
+  return {
+    card: usable.find((f) => f.roles.includes("card")) ?? null,
+    detail: usable.filter((f) => f.roles.includes("detail")).sort((a, b) => rank(a) - rank(b)),
+  };
+}

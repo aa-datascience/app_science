@@ -8,7 +8,7 @@ from test_pipeline import FIXTURES, paper
 
 from arxiv_digest.budget import affordable_size, can_open, estimate_cost, month_spent
 from arxiv_digest.citations import check_claims, normalize
-from arxiv_digest.fulltext import select_sections
+from arxiv_digest.fulltext import FullText, select_sections
 from arxiv_digest.llm import LLM, BudgetExceeded, read_usage, usage_cost
 from arxiv_digest.models import Candidate, Card, Claim, Context, Detail, RankBatch, RankItem
 from arxiv_digest.steps import Article, generate_detail, make_article, make_cards, rank
@@ -25,6 +25,7 @@ def detail_with(quotes):
         explanation_expert="e",
         context=Context(before="b", change="c", limitations="l"),
         claims=[Claim(statement=f"s{i}", quote=q) for i, q in enumerate(quotes)],
+        figures=[],
     )
 
 
@@ -50,7 +51,7 @@ class FakeClient:
                 items=[RankItem(arxiv_id=i, relevance=4, importance=3, novelty=3, difficulty=2, why="w") for i in ids]
             )
         elif "plain_title" in props:
-            out = Card(plain_title="t", finding="f", why_it_matters="w", tags=["a"], difficulty=9)
+            out = Card(plain_title="t", finding="f", why_it_matters="w", tags=["a"], difficulty=9, figure="")
         else:
             out = detail_with(self.quotes)
         usage = SimpleNamespace(
@@ -228,7 +229,7 @@ def fake_cli(cfg, monkeypatch):
     import arxiv_digest.cli as cli
 
     client = FakeClient()
-    monkeypatch.setattr(cli, "fetch_fulltext", lambda p, **kw: (TEXT, "html", False))
+    monkeypatch.setattr(cli, "fetch_fulltext", lambda p, **kw: FullText(TEXT, "html"))
     monkeypatch.setattr(cli, "LLM", lambda c, path, day: LLM(c, path, day, client=client))
     return cli, client
 

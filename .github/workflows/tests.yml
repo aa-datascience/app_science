@@ -29,4 +29,7 @@ jobs:
         with:
           node-version: "24"
       - name: Vérification des citations côté Edge Function
-        run: node --test supabase/functions/open-paper/citations.test.ts
+        run: node --test supabase/functions/open-paper/citations.test.ts supabase/functions/open-paper/figures.test.ts
+      - name: App (types et logique)
+        working-directory: app
+        run: npm ci && npm run typecheck && npm test

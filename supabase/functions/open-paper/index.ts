@@ -17,6 +17,7 @@ import Anthropic from "npm:@anthropic-ai/sdk@^1.8.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkClaims, type Claim } from "./citations.ts";
+import { figuresForPrompt, validLabels } from "./figures.ts";
 
 type ServerConfig = {
   detail_model: string;
@@ -107,6 +108,10 @@ Deno.serve(async (req) => {
     : cost(prices, cfg.assumed_detail_tokens[0], cfg.assumed_detail_tokens[1]);
   if (spent + estimate > cfg.monthly_usd) return json({ error: "budget", spent, cap: cfg.monthly_usd }, 402);
 
+  // Figures décrites la nuit par le pipeline : le modèle en choisit une à trois.
+  const figRes = await db.from("paper_figures").select("label, caption, roles").eq("paper_id", arxivId).order("position");
+  const figureRows: { label: string; caption: string; roles: string[] }[] = figRes.data ?? [];
+
   // 5. Texte stocké la nuit ; à défaut, le résumé (l'article est alors marqué « basé sur le résumé »).
   const text: string = paper.full_text ?? paper.abstract;
   const source: string = paper.full_text ? paper.text_source : "abstract";
@@ -120,6 +125,7 @@ Deno.serve(async (req) => {
     arxiv_id: paper.arxiv_id,
     categories: (paper.categories ?? []).join(", "),
     level: cfg.levels[paper.primary_category] ?? "intermediate",
+    figures: figuresForPrompt(figureRows),
   });
 
   // 6. Un seul appel au modèle, sortie contrainte par le schéma du détail.
@@ -168,6 +174,7 @@ Deno.serve(async (req) => {
     explanation_expert: string;
     context: Record<string, string>;
     claims: Claim[];
+    figures?: { label: string; what_to_look_at: string }[];
   };
   try {
     detail = JSON.parse(block && block.type === "text" ? block.text : "");
@@ -179,10 +186,16 @@ Deno.serve(async (req) => {
   // 7. Vérification des citations, sans modèle.
   const { kept, removed, status } = checkClaims(detail.claims, text);
 
+  // Figures : seuls les labels présents dans la liste extraite sont gardés, trois au plus.
+  const chosen = detail.figures ?? [];
+  const notes = new Map(chosen.map((f) => [validLabels([f.label], figureRows, 1)[0], f.what_to_look_at]));
+  const figures = validLabels(chosen.map((f) => f.label), figureRows, 3)
+    .map((label) => ({ label, what_to_look_at: notes.get(label) ?? "" }));
+
   // 8. Stockage. Si deux ouvertures se croisent, la première écrite gagne et c'est elle qu'on renvoie.
   const row = {
     paper_id: arxivId,
-    detail: { ...detail, claims: kept },
+    detail: { ...detail, claims: kept, figures },
     removed_claims: removed,
     verification_status: status,
     text_source: source,
@@ -194,6 +207,14 @@ Deno.serve(async (req) => {
   };
   const saved = await db.from("details").upsert(row, { onConflict: "paper_id", ignoreDuplicates: true });
   if (saved.error) return json({ error: "database", message: saved.error.message }, 500);
+  // Les figures choisies reçoivent le rôle « detail » ; le pipeline les copiera dans le stockage.
+  for (const f of figures) {
+    const current = figureRows.find((r) => r.label === f.label)?.roles ?? [];
+    await db.from("paper_figures")
+      .update({ roles: [...new Set([...current, "detail"])].sort(), what_to_look_at: f.what_to_look_at })
+      .eq("paper_id", arxivId).eq("label", f.label);
+  }
+
   const stored = await db.from("details").select("*").eq("paper_id", arxivId).single();
   return json({ detail: stored.data ?? row, cached: false });
 });

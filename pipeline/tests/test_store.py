@@ -22,7 +22,7 @@ def ranked(i, slot="main"):
 def night(cfg):
     """Une nuit : 3 articles classés, 2 dans l'édition."""
     rk = [ranked(1), ranked(2, "exploration"), ranked(3)]
-    card = Card(plain_title="t", finding="f", why_it_matters="w", tags=["a"], difficulty=2)
+    card = Card(plain_title="t", finding="f", why_it_matters="w", tags=["a"], difficulty=2, figure="")
     items = [
         EditionItem(position=n + 1, slot=r.candidate.slot, paper=r.candidate.paper, rank=r.rank,
                     final_score=r.final_score, card=card, model=cfg.models.card, prompt_version="v1")
@@ -35,7 +35,7 @@ def night(cfg):
 
 def stored_detail():
     d = Detail(explanation_lay="l", explanation_expert="e", context=Context(before="b", change="c", limitations="l"),
-               claims=[Claim(statement="s", quote="q")])
+               claims=[Claim(statement="s", quote="q")], figures=[])
     return StoredDetail(arxiv_id="2611.00001", detail=d, removed_claims=[], verification_status="verified",
                         text_source="html", based_on_abstract=False, model="m", prompt_version="v")
 
@@ -48,7 +48,10 @@ class FakeRest:
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         table = request.url.path.rsplit("/", 1)[-1]
-        body = json.loads(request.content) if request.content else None
+        if request.headers.get("content-type", "").startswith("image/"):
+            body = {"bytes": len(request.content)}  # dépôt d'une image dans le stockage
+        else:
+            body = json.loads(request.content) if request.content else None
         self.requests.append({"method": request.method, "table": table, "params": dict(request.url.params),
                               "prefer": request.headers.get("prefer", ""), "body": body})
         if request.method == "GET":
@@ -122,6 +125,8 @@ def test_supabase_reads(cfg, tmp_path):
         "rankings": [rk, {**rk, "date": "2026-11-10"}],
         "papers": [p],
         "details": [],
+        "paper_figures": [{"label": "2", "caption": "cap", "sources": ["u"], "roles": ["card"],
+                          "what_to_look_at": None, "storage_paths": ["p/2-1.webp"], "stored": True}],
     })
     store = rest.store(tmp_path)
     assert len(store.seen_ids()) == 1500  # pagination au-delà de 1000 lignes
@@ -132,6 +137,7 @@ def test_supabase_reads(cfg, tmp_path):
     assert len(reserve) == 1 and reserve[0].rank.difficulty == 5 and reserve[0].candidate.paper.version == 2
     art = store.article(store.find_paper("2611.00001"))
     assert (art.text, art.source, art.mode) == ("stored text", "latex", "sections")
+    assert [(f.label, f.roles, f.stored) for f in art.figures] == [("2", ["card"], True)]  # figures lues avec le texte
     assert store.get_detail("2611.00001") is None
 
 
@@ -145,3 +151,33 @@ def test_supabase_detail_and_usage_writes(cfg, tmp_path):
     assert "arxiv_id" not in detail["body"][0] and detail["params"] == {"on_conflict": "paper_id"}
     assert usage["table"] == "api_usage" and usage["body"]["step"] == "detail"
     assert server_config(cfg)["monthly_usd"] == cfg.budget.monthly_usd
+
+
+def test_supabase_figures_writes(cfg, tmp_path):
+    from arxiv_digest.models import Figure
+
+    rest = FakeRest({"paper_figures": [
+        {"paper_id": "p", "label": "1", "caption": "c1", "sources": ["u1"], "roles": [], "what_to_look_at": None,
+         "storage_paths": [], "stored": False},
+        {"paper_id": "p", "label": "2", "caption": "c2", "sources": ["u2"], "roles": ["card"], "what_to_look_at": None,
+         "storage_paths": [], "stored": False},
+    ]})
+    store = rest.store(tmp_path)
+    store.save_figures("p", [Figure(label="1", caption="c1", images=["u1"])])
+    save = rest.requests[-1]
+    assert save["table"] == "paper_figures" and save["params"] == {"on_conflict": "paper_id,label"}
+    assert set(save["body"][0]) == {"paper_id", "label", "position", "caption", "sources"}  # ni rôle ni chemins écrasés
+
+    store.mark_figures("p", "detail", {"2": "look here"})
+    patch = rest.requests[-1]
+    assert patch["method"] == "PATCH" and patch["params"] == {"paper_id": "eq.p", "label": "eq.2"}
+    assert patch["body"] == {"roles": ["card", "detail"], "what_to_look_at": "look here"}
+
+    store.upload_figure("p/2-1.webp", b"webp-bytes")
+    up = rest.requests[-1]
+    assert up["method"] == "POST" and up["table"] == "2-1.webp"  # /storage/v1/object/figures/p/2-1.webp
+
+    store.set_figure_stored("p", "2", ["p/2-1.webp"])
+    assert rest.requests[-1]["body"] == {"storage_paths": ["p/2-1.webp"], "stored": True}
+    store.pending_figures()
+    assert rest.requests[-1]["params"]["stored"] == "is.false" and rest.requests[-1]["params"]["roles"] == "neq.{}"

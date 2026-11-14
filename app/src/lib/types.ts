@@ -26,6 +26,20 @@ export type EditionCard = {
 
 export type Claim = { statement: string; quote: string };
 
+/** Une image de figure prête à afficher : adresse (signée ou d'origine) et clé de cache stable. */
+export type FigureImage = { uri: string; cacheKey: string };
+
+/** Une figure choisie pour la carte ou pour la vue profondeur (table paper_figures). */
+export type PaperFigure = {
+  paper_id: string;
+  label: string;
+  position: number;
+  caption: string;
+  roles: ("card" | "detail")[];
+  what_to_look_at: string | null;
+  images: FigureImage[];
+};
+
 /** Une ligne de la table details : générée à la première ouverture, jamais régénérée. */
 export type DetailRow = {
   paper_id: string;
@@ -34,6 +48,7 @@ export type DetailRow = {
     explanation_expert: string;
     context: { before: string; change: string; limitations: string };
     claims: Claim[];
+    figures?: { label: string; what_to_look_at: string }[];
   };
   removed_claims: Claim[];
   verification_status: "verified" | "unverified";

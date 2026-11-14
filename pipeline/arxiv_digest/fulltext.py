@@ -8,12 +8,13 @@ import logging
 import re
 import tarfile
 import time
+from dataclasses import dataclass, field
 from typing import Literal
 
 import httpx
 from bs4 import BeautifulSoup
 
-from .models import Paper
+from .models import Figure, Paper
 
 log = logging.getLogger(__name__)
 
@@ -127,6 +128,21 @@ def _read_eprint(data: bytes) -> dict[str, str]:
     return files
 
 
+def read_eprint_assets(data: bytes) -> dict[str, bytes]:
+    """Images de l'archive LaTeX (pour le repli des figures), par nom de fichier."""
+    assets: dict[str, bytes] = {}
+    try:
+        with tarfile.open(fileobj=io.BytesIO(data), mode="r:*") as tar:
+            for m in tar.getmembers():
+                if m.isfile() and m.name.lower().endswith((".png", ".jpg", ".jpeg", ".pdf", ".svg")) and m.size < 20_000_000:
+                    f = tar.extractfile(m)
+                    if f:
+                        assets[m.name] = f.read()
+    except tarfile.TarError:
+        pass
+    return assets
+
+
 def _pdf_to_text(data: bytes) -> str:
     from pypdf import PdfReader
 
@@ -134,15 +150,35 @@ def _pdf_to_text(data: bytes) -> str:
     return "\n\n".join((page.extract_text() or "") for page in reader.pages).strip()
 
 
-def fetch_fulltext(
-    paper: Paper, *, user_agent: str, delay_seconds: float, max_chars: int
-) -> tuple[str, Source, bool]:
-    """Renvoie (texte, source, tronqué). Ne lève pas : retombe sur le résumé."""
+@dataclass
+class FullText:
+    text: str
+    source: Source
+    truncated: bool = False
+    figures: list[Figure] = field(default_factory=list)
+    assets: dict[str, bytes] = field(default_factory=dict)  # images de l'archive LaTeX, si c'est la source
+
+
+def fetch_fulltext(paper: Paper, *, user_agent: str, delay_seconds: float, max_chars: int) -> FullText:
+    """Texte complet et figures. Ne lève pas : retombe sur le résumé, sans figure."""
+    from .figures import extract_figures_html, extract_figures_latex
+
     vid = f"{paper.arxiv_id}v{paper.version}"
+
+    def from_html(r: httpx.Response) -> FullText:
+        return FullText(html_to_text(r.text), "html", figures=extract_figures_html(r.text, f"https://arxiv.org/html/{vid}"))
+
+    def from_latex(r: httpx.Response) -> FullText:
+        text = latex_to_text(_read_eprint(r.content))
+        assets = read_eprint_assets(r.content)
+        figures = extract_figures_latex(text, list(assets))
+        used = {img.removeprefix("eprint:") for f in figures for img in f.images}
+        return FullText(text, "latex", figures=figures, assets={k: v for k, v in assets.items() if k in used})
+
     attempts = (
-        ("html", f"https://arxiv.org/html/{vid}", lambda r: html_to_text(r.text)),
-        ("latex", f"https://arxiv.org/e-print/{vid}", lambda r: latex_to_text(_read_eprint(r.content))),
-        ("pdf", f"https://arxiv.org/pdf/{vid}", lambda r: _pdf_to_text(r.content)),
+        ("html", f"https://arxiv.org/html/{vid}", from_html),
+        ("latex", f"https://arxiv.org/e-print/{vid}", from_latex),
+        ("pdf", f"https://arxiv.org/pdf/{vid}", lambda r: FullText(_pdf_to_text(r.content), "pdf")),
     )
     with httpx.Client(headers={"User-Agent": user_agent}, timeout=60, follow_redirects=True) as client:
         for i, (source, url, extract) in enumerate(attempts):
@@ -152,13 +188,14 @@ def fetch_fulltext(
                 r = client.get(url)
                 if r.status_code != 200:
                     continue
-                text = extract(r)
+                full = extract(r)
             except Exception as e:  # réseau, archive ou PDF illisible : on passe à la source suivante
                 log.warning("texte complet %s via %s: %s", paper.arxiv_id, source, e)
                 continue
-            if len(text) >= MIN_CHARS:
-                truncated = len(text) > max_chars
-                if truncated:
+            if len(full.text) >= MIN_CHARS:
+                full.truncated = len(full.text) > max_chars
+                if full.truncated:
                     log.warning("texte complet %s: coupé à %d caractères", paper.arxiv_id, max_chars)
-                return text[:max_chars], source, truncated  # type: ignore[return-value]
-    return paper.abstract, "abstract", False
+                full.text = full.text[:max_chars]
+                return full
+    return FullText(paper.abstract, "abstract")

@@ -164,6 +164,23 @@ def test_to_webp_resizes_and_flattens_transparency():
     assert flat.getpixel((10, 10))[0] > 240  # transparent -> fond blanc, pas noir
 
 
+def test_svg_dashes_and_clip_paths_are_respected():
+    # Régression : l'ancien rendu ignorait stroke-dasharray et clip-path (courbes pleines, tracés hors du cadre).
+    svg = b"""<svg xmlns="http://www.w3.org/2000/svg" width="400pt" height="200pt" viewBox="0 0 400 200">
+      <defs><clipPath id="axes"><rect x="100" y="0" width="200" height="200"/></clipPath></defs>
+      <g clip-path="url(#axes)">
+        <line x1="0" y1="50" x2="400" y2="50" stroke="#000000" stroke-width="10"/>
+        <line x1="0" y1="150" x2="400" y2="150" stroke="#000000" stroke-width="10" stroke-dasharray="20,20"/>
+      </g></svg>"""
+    img = Image.open(io.BytesIO(to_webp(svg, "plot.svg"))).convert("L")
+    assert img.width == 1400  # vectoriel : rendu à la largeur maximale
+    k = img.width / 400
+    dark = lambda x, y: img.getpixel((round(x * k), round(y * k))) < 100  # noqa: E731
+    assert dark(200, 50) and not dark(50, 50) and not dark(350, 50)  # trait coupé au cadre des axes
+    row = [dark(x, 150) for x in range(105, 295, 5)]
+    assert any(row) and not all(row)  # pointillés : des pleins et des vides
+
+
 def test_to_webp_renders_svg_and_pdf():
     svg = b'<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="red"/></svg>'
     img = Image.open(io.BytesIO(to_webp(svg, "https://arxiv.org/html/x/plot.svg")))
@@ -183,7 +200,7 @@ def test_copy_figure_from_latex_assets_and_skips_unreadable():
         "2611.00001", fig, uploads.__setitem__, user_agent="t", delay_seconds=0,
         assets={"a.png": png(), "broken.png": b"not an image"},
     )
-    assert paths == ["2611.00001/2-1.webp"] and list(uploads) == paths and size == len(uploads[paths[0]])
+    assert paths == ["2611.00001/2-1.r2.webp"] and list(uploads) == paths and size == len(uploads[paths[0]])
 
 
 def test_only_chosen_figures_are_copied(tmp_path):
@@ -199,10 +216,26 @@ def test_only_chosen_figures_are_copied(tmp_path):
     assert n == 2 and size > 0
     by_label = {f.label: f for f in store.get_figures("2611.00001")}
     assert by_label["2"].roles == ["card", "detail"] and by_label["2"].what_to_look_at == "the dip at zero bias"
-    assert by_label["2"].stored and by_label["2"].storage_paths == ["2611.00001/2-1.webp"]
+    assert by_label["2"].stored and by_label["2"].storage_paths == ["2611.00001/2-1.r2.webp"]
     assert not by_label["1"].stored and by_label["1"].roles == []
-    assert sorted(p.name for p in (tmp_path / "figures" / "2611.00001").iterdir()) == ["2-1.webp", "3-1.webp"]
+    assert sorted(p.name for p in (tmp_path / "figures" / "2611.00001").iterdir()) == ["2-1.r2.webp", "3-1.r2.webp"]
     assert sync_figures(store, user_agent="t", delay_seconds=0, assets=assets) == (0, 0)  # déjà copiées
 
     store.save_figures("2611.00001", figs)  # une nouvelle extraction ne fait pas perdre les rôles
     assert {f.label: f.stored for f in store.get_figures("2611.00001")} == {"1": False, "2": True, "3": True}
+
+
+def test_redo_recopies_stored_figures_and_removes_old_files(tmp_path):
+    store = LocalStore(tmp_path)
+    store.save_figures("2611.00001", [Figure(label="2", caption="Caption 2 of the paper.", images=[EPRINT + "2.png"])])
+    store.mark_figures("2611.00001", "card", {"2": ""})
+    # Une figure copiée par l'ancienne conversion, sous son ancien nom.
+    store.upload_figure("2611.00001/2-1.webp", b"old render")
+    store.set_figure_stored("2611.00001", "2", ["2611.00001/2-1.webp"])
+    assets = {"2611.00001": {"2.png": png()}}
+
+    assert sync_figures(store, user_agent="t", delay_seconds=0, assets=assets) == (0, 0)  # sans --redo : rien
+    n, _ = sync_figures(store, user_agent="t", delay_seconds=0, assets=assets, redo=True)
+    fig = store.get_figures("2611.00001")[0]
+    assert n == 1 and fig.storage_paths == ["2611.00001/2-1.r2.webp"]  # nouveau nom : le cache des téléphones est contourné
+    assert sorted(p.name for p in (tmp_path / "figures" / "2611.00001").iterdir()) == ["2-1.r2.webp"]  # ancien fichier supprimé

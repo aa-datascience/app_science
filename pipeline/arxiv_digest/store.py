@@ -160,12 +160,18 @@ class LocalStore:
                 f.what_to_look_at = notes[f.label] or f.what_to_look_at
         self._write_figures(paper_id, figures)
 
-    def pending_figures(self) -> list[tuple[str, StoredFigure]]:
-        """Figures choisies dont les images ne sont pas encore copiées."""
+    def pending_figures(self, include_stored: bool = False) -> list[tuple[str, StoredFigure]]:
+        """Figures choisies dont les images ne sont pas encore copiées (toutes les choisies si include_stored)."""
         out = []
         for path in sorted((self.out / "figures").glob("*.json")):
-            out += [(path.stem, f) for f in self.get_figures(path.stem) if f.roles and not f.stored]
+            out += [
+                (path.stem, f) for f in self.get_figures(path.stem) if f.roles and (include_stored or not f.stored)
+            ]
         return out
+
+    def delete_figure_files(self, paths: list[str]) -> None:
+        for path in paths:
+            (self.out / "figures" / path).unlink(missing_ok=True)
 
     def upload_figure(self, path: str, data: bytes) -> None:
         target = self.out / "figures" / path
@@ -434,13 +440,15 @@ class SupabaseStore:
                 "/paper_figures", params={"paper_id": f"eq.{paper_id}", "label": f"eq.{f.label}"}, json=body
             ).raise_for_status()
 
-    def pending_figures(self) -> list[tuple[str, StoredFigure]]:
-        rows = self._get("paper_figures", select="*", stored="is.false", roles="neq.{}", order="paper_id,position")
+    def pending_figures(self, include_stored: bool = False) -> list[tuple[str, StoredFigure]]:
+        filters = {} if include_stored else {"stored": "is.false"}
+        rows = self._get("paper_figures", select="*", roles="neq.{}", order="paper_id,position", **filters)
         return [
             (
                 r["paper_id"],
                 StoredFigure(label=r["label"], caption=r["caption"], images=r["sources"], roles=r["roles"],
-                             what_to_look_at=r["what_to_look_at"] or ""),
+                             what_to_look_at=r["what_to_look_at"] or "", storage_paths=r["storage_paths"],
+                             stored=r["stored"]),
             )
             for r in rows
         ]
@@ -451,6 +459,12 @@ class SupabaseStore:
             f"{self.storage_url}/object/figures/{path}",
             content=data,
             headers={"Content-Type": "image/webp", "x-upsert": "true"},
+        ).raise_for_status()
+
+    def delete_figure_files(self, paths: list[str]) -> None:
+        """Supprime des images du compartiment « figures » (anciens rendus remplacés)."""
+        self.http.request(
+            "DELETE", f"{self.storage_url}/object/figures", json={"prefixes": paths}
         ).raise_for_status()
 
     def set_figure_stored(self, paper_id: str, label: str, paths: list[str]) -> None:

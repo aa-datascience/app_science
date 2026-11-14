@@ -284,10 +284,11 @@ def main(argv: list[str] | None = None) -> int:
                    help="si le flux arXiv n'est pas à jour : attendre (ne rien faire) ou puiser dans la réserve")
     p.add_argument("--force", action="store_true", help="refait l'édition même si elle est déjà prête")
 
-    sub.add_parser(
+    sf = sub.add_parser(
         "sync-figures", parents=[common],
         help="copie dans le stockage les figures choisies qui n'y sont pas encore (WebP, 1400 px max)",
     )
+    sf.add_argument("--redo", action="store_true", help="refait aussi les figures déjà copiées (changement de conversion)")
 
     nt = sub.add_parser("notify", parents=[common], help="envoie la notification du matin ou du soir si elle est due")
     nt.add_argument("kind", choices=["morning", "evening"])
@@ -315,7 +316,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "sync-figures":
         cfg = load_config(args.config)
         n, size = sync_figures(
-            make_store(args.out), user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds
+            make_store(args.out), user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds,
+            redo=args.redo,
         )
         print(f"Figures copiées dans le stockage : {n} ({size // 1024} Ko).")
         return 0

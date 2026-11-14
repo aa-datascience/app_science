@@ -26,6 +26,10 @@ MIN_DISPLAY_WIDTH, MIN_DISPLAY_HEIGHT = 120, 60  # en dessous : logo ou pictogra
 MIN_CAPTION_CHARS = 15
 CAPTION_CHARS_IN_PROMPT = 700
 EPRINT = "eprint:"  # préfixe d'une image qui vit dans l'archive LaTeX de l'article
+# Version du rendu, inscrite dans le nom des fichiers copiés : la changer quand la conversion change,
+# pour que les téléphones ne gardent pas l'ancienne image en cache (voir `sync-figures --redo`).
+# r2 : les SVG passent par resvg (pointillés et zones de découpe respectés).
+RENDER_VERSION = 2
 
 _LABEL = re.compile(r"(?:Figure|Fig\.?)\s*([A-Za-z]?\d+[A-Za-z]?)", re.I)
 
@@ -166,19 +170,44 @@ def valid_labels(chosen: list[str], figures: list[Figure], limit: int) -> list[s
 # ---------- conversion et copie ----------
 
 
+def _svg_to_image(data: bytes):
+    """Rend un SVG avec resvg, qui respecte pointillés (stroke-dasharray) et découpes (clip-path).
+
+    MuPDF, utilisé au départ, ignorait les deux : courbes pleines au lieu de pointillées, et tracés
+    qui débordaient du cadre des axes.
+    """
+    import resvg_py
+    from PIL import Image
+
+    # dpi explicite : sans lui, les tailles en points (« 561.6pt ») sont refusées.
+    png = resvg_py.svg_to_bytes(
+        svg_string=data.decode("utf-8", "replace"), dpi=96.0, width=MAX_WIDTH, background="#ffffff"
+    )
+    img = Image.open(io.BytesIO(bytes(png)))
+    img.load()
+    return img
+
+
+def _pdf_to_image(data: bytes):
+    import pymupdf
+    from PIL import Image
+
+    doc = pymupdf.open(stream=data, filetype="pdf")
+    page = doc[0]
+    zoom = min(4.0, MAX_WIDTH / max(1.0, page.rect.width))
+    pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+    return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+
+
 def to_webp(data: bytes, name: str) -> bytes:
     """Convertit une image (PNG, JPEG, SVG, PDF) en WebP, largeur maximale 1400 px."""
     from PIL import Image
 
     lower = name.lower().split("?")[0]
-    if lower.endswith((".svg", ".pdf")):
-        import pymupdf
-
-        doc = pymupdf.open(stream=data, filetype="svg" if lower.endswith(".svg") else "pdf")
-        page = doc[0]
-        zoom = min(4.0, MAX_WIDTH / max(1.0, page.rect.width))
-        pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
-        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+    if lower.endswith(".svg"):
+        img = _svg_to_image(data)
+    elif lower.endswith(".pdf"):
+        img = _pdf_to_image(data)
     else:
         img = Image.open(io.BytesIO(data))
         img.load()
@@ -232,7 +261,7 @@ def copy_figure(
             except Exception as e:  # image illisible : on garde les autres
                 log.warning("figure %s/%s: conversion impossible (%s)", paper_id, figure.label, e)
                 continue
-            path = f"{paper_id}/{figure.label}-{i + 1}.webp"
+            path = f"{paper_id}/{figure.label}-{i + 1}.r{RENDER_VERSION}.webp"
             upload(path, webp)
             paths.append(path)
             total += len(webp)
@@ -240,19 +269,26 @@ def copy_figure(
 
 
 def sync_figures(
-    store, *, user_agent: str, delay_seconds: float, assets: dict[str, dict[str, bytes]] | None = None
+    store,
+    *,
+    user_agent: str,
+    delay_seconds: float,
+    assets: dict[str, dict[str, bytes]] | None = None,
+    redo: bool = False,
 ) -> tuple[int, int]:
     """Copie dans le stockage les figures choisies qui n'y sont pas encore. Renvoie (figures, octets).
 
     `assets` : par article, les fichiers de son archive LaTeX déjà en mémoire ; sinon l'archive est
     retéléchargée, une fois par article, pour les figures qui en viennent.
+    `redo` : refaire aussi les figures déjà copiées (après un changement de conversion) et
+    supprimer leurs anciens fichiers.
     """
     from .fulltext import read_eprint_assets
 
     assets = dict(assets or {})
     done = total = 0
     first = True
-    for paper_id, figure in store.pending_figures():
+    for paper_id, figure in store.pending_figures(include_stored=redo):
         if not first:
             time.sleep(delay_seconds)
         first = False
@@ -268,6 +304,9 @@ def sync_figures(
         )
         if paths:
             store.set_figure_stored(paper_id, figure.label, paths)
+            stale = [old for old in figure.storage_paths if old not in paths]
+            if stale:
+                store.delete_figure_files(stale)
             done += 1
             total += size
             log.info("figure %s/%s: %d image(s), %d Ko", paper_id, figure.label, len(paths), size // 1024)

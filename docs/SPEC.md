@@ -72,6 +72,7 @@ Les cartes et la vue profondeur montrent des figures de l'article, choisies sans
 
 - Table `paper_figures` : toutes les figures des articles de l'édition y sont décrites (label, position, légende, adresses d'origine). Les figures choisies reçoivent un rôle (`card`, `detail`, ou les deux) et, pour le détail, leur phrase « what to look at ».
 - **Seules les figures choisies sont copiées** dans le compartiment privé `figures` de Supabase Storage, converties en WebP, 1400 px de large au plus.
+- Les SVG sont rendus par resvg, qui respecte pointillés et zones de découpe ; les PDF de la source LaTeX par MuPDF. Le nom du fichier copié porte la version du rendu (`2-1.r2.webp`) : après un changement de conversion, `sync-figures --redo` refait les figures déjà copiées sous un nouveau nom, pour que les téléphones ne gardent pas l'ancienne image en cache.
 - La figure d'une carte est copiée la nuit même. Les figures choisies à l'ouverture par l'Edge Function sont copiées par le pipeline de nuit suivant (`sync-figures`) : la fonction ne fait pas de traitement d'image. En attendant, l'app les affiche depuis leur adresse d'origine sur arXiv.
 
 ### Dans l'app

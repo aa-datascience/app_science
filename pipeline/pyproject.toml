@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv>=1",
     "pillow>=10",
     "pymupdf>=1.24",
+    "resvg-py>=0.5",
     "tzdata; platform_system == 'Windows'",
 ]
 

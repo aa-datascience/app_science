@@ -181,3 +181,7 @@ def test_supabase_figures_writes(cfg, tmp_path):
     assert rest.requests[-1]["body"] == {"storage_paths": ["p/2-1.webp"], "stored": True}
     store.pending_figures()
     assert rest.requests[-1]["params"]["stored"] == "is.false" and rest.requests[-1]["params"]["roles"] == "neq.{}"
+    store.pending_figures(include_stored=True)
+    assert "stored" not in rest.requests[-1]["params"]
+    store.delete_figure_files(["p/2-1.webp"])
+    assert rest.requests[-1]["method"] == "DELETE" and rest.requests[-1]["body"] == {"prefixes": ["p/2-1.webp"]}

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "3119649832",
+    "project_id": "arxiv-digest-e1b6a",
+    "storage_bucket": "arxiv-digest-e1b6a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:3119649832:android:2dd22924887a408e31911d",
+        "android_client_info": {
+          "package_name": "dev.arxivdigest.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpxk3-rkMGNJrLJJR0bvAYISNAn-NW12Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

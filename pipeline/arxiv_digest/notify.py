@@ -53,7 +53,10 @@ def send_push(token: str, body: str, http: httpx.Client | None = None) -> None:
         raise RuntimeError(f"Expo a refusé la notification : {data.get('message') or data}")
 
 
-def notify(*, out: Path, kind: str, dry_run: bool = False, now: datetime | None = None) -> int:
+def notify(
+    *, out: Path, kind: str, dry_run: bool = False, now: datetime | None = None,
+    at: str | None = None, again: bool = False,
+) -> int:
     store = make_store(out)
     if not isinstance(store, SupabaseStore):
         log.error("les notifications demandent Supabase (SUPABASE_URL et SUPABASE_SERVICE_KEY)")
@@ -61,9 +64,15 @@ def notify(*, out: Path, kind: str, dry_run: bool = False, now: datetime | None 
     profile = store.profile()
     settings = profile.get("settings") or {}
     now = now or datetime.now(ZoneInfo(settings.get("timezone") or DEFAULTS["timezone"]))
+    if at:  # essais : même jour, heure imposée
+        hour, minute = (int(x) for x in at.split(":"))
+        now = now.replace(hour=hour, minute=minute)
     day = now.date().isoformat()
 
-    message = decide(kind, now, store.edition_state(day), settings)
+    edition = store.edition_state(day)
+    if again and edition:  # essais : oublier l'envoi précédent du jour
+        edition = {**edition, f"{kind}_notified_at": None}
+    message = decide(kind, now, edition, settings)
     if message is None:
         print(f"Notification {kind} du {day} : rien à envoyer.")
         return 0

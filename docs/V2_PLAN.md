@@ -1,6 +1,6 @@
 # Plan de la V2
 
-État : **proposition, en attente de validation**. Rien de la V2 n'est codé. Les migrations SQL sont écrites dans `supabase/v2_pending/` et ne sont pas appliquées.
+État : **plan validé le 14 novembre 2026** (décisions en section 6). Rien de la V2 n'est encore codé : elle commence après les notifications push, le deuxième APK et le retour de vérification sur téléphone. Les migrations de `supabase/v2_pending/` seront appliquées une à une, au fil des étapes, avec un point après chaque fonctionnalité.
 
 Périmètre (spec d'origine, sections 5, 6, 7 et 10) : (a) profil appris et écran Profil, (b) fiches concepts et questions de compréhension, (c) « Demander à l'article », (d) carnet, (e) statistiques et bilan du lundi.
 
@@ -102,19 +102,21 @@ Pour un article de 30 000 tokens, réponse plafonnée à 600 tokens.
 
 Profil, stats et carnet ne coûtent rien : Python et SQL, sans modèle. Avec Sonnet, le total approche le plafond de 15 $ ; une semaine avec plus de trois ouvertures par jour le ferait atteindre.
 
-## 6. Décisions attendues
+## 6. Décisions prises (14 novembre 2026)
 
-1. **Modèle du détail.** Le cahier des charges de la V2 parle de Sonnet ; la configuration actuelle est Haiku, à votre demande. La V2 charge davantage cet appel (concepts, questions, figures). Garder Haiku, ou repasser à Sonnet ? Je propose de trancher sur une mesure à l'étape 4, comme pour la V1.
-2. **Modification d'un poids à la main.** Deux options : elle déplace le poids et l'apprentissage continue à partir de là, ou elle le verrouille. Le schéma permet les deux (colonne `locked`). Je propose : l'apprentissage continue, avec une case « verrouiller » par ligne.
-3. **Portée de l'apprentissage.** Je propose : poids des catégories, poids des mots-clés déjà présents, niveaux par sous-domaine. Pas de nouveaux mots-clés ajoutés tout seuls, pour que le profil reste lisible. D'accord ?
-4. **Force de l'apprentissage.** Aujourd'hui dans le code : +0,05 pour « interesting », −0,05 pour « not for me », +0,10 pour Save, retour de 2 % vers la valeur de repos à chaque édition, bornes 0,2 à 2,0. Faut-il aussi compter les signaux implicites (article lu : petit plus ; ignoré : petit moins) ? La spec les cite ; je propose de les compter à un cinquième du poids d'un feedback explicite.
-5. **Réutilisation des concepts.** La liste des concepts connus grossit avec le temps. Je propose de n'en passer au modèle que 150 au plus, ceux du même domaine d'abord. Les doublons éventuels (« Andreev bound state » et « Andreev states ») se fusionneraient à la main depuis l'écran Concepts : acceptable ?
-6. **Détails déjà générés.** Les articles ouverts avant l'étape 4 n'auront ni concepts ni questions, puisqu'un détail n'est jamais régénéré. Les laisser ainsi, ou autoriser une régénération à la demande (payante) ?
-7. **Questions de compréhension.** Garder l'historique des réponses (oui dans le schéma) ? Les résultats doivent-ils influencer le niveau du sous-domaine ? Je propose : historique oui, influence non en V2.
-8. **Demander à l'article.** Trois réglages : longueur maximale d'une réponse (je propose environ 150 mots), nombre maximal de questions par jour (je propose 20), mémoire de la conversation (je propose les trois derniers échanges).
-9. **Carnet.** Save crée l'entrée du carnet, et la retirer du carnet annule le Save : d'accord ? Export : un fichier Markdown et un fichier BibTeX partagés par le menu de partage d'Android.
-10. **Bilan du lundi.** En tête de l'édition (une carte de plus avant la première), ou sur l'écran d'accueil ? La spec dit « en tête de l'édition du lundi ».
-11. **Reste de la V1.** Notifications push (projet Firebase à créer) et réglages ne sont pas faits. Les réglages entrent naturellement dans l'étape 3. Les notifications : avant la V2, ou après ?
+1. **Modèle du détail** : Haiku. Le détail seul doit pouvoir passer à Sonnet par une ligne de configuration (`models.generate` dans `config.yaml`, recopiée chaque nuit pour la fonction `open-paper`) ; décision après une semaine d'usage.
+2. **Poids modifié à la main** : l'apprentissage continue à partir de la valeur saisie ; un verrou optionnel par poids dans l'écran Profil (`locked`).
+3. **Portée de l'apprentissage** : poids des catégories, poids des mots-clés déjà présents, niveaux par sous-domaine. Pas de mots-clés ajoutés automatiquement.
+4. **Force de l'apprentissage et signaux implicites** : +0,05 pour « interesting », −0,05 pour « not for me », +0,10 pour Save, retour de 2 % vers la valeur de repos à chaque édition, bornes 0,2 à 2,0. Signaux implicites faibles : « lu » = 0,5 × un « interesting » (+0,025) ; « ignoré » = 0,25 × un « not for me » (−0,0125), **seulement si la carte est restée au moins 2 secondes à l'écran**. L'app doit donc enregistrer la durée d'affichage de chaque carte.
+5. **Réutilisation des concepts** : 150 concepts connus au plus dans le prompt, ceux du même domaine d'abord ; fusion des doublons à la main depuis l'écran Concepts.
+6. **Détails déjà générés** : pas de régénération automatique ; un bouton « régénérer » dans la vue profondeur (appel payant, à la demande).
+7. **Questions de compréhension** : historique des réponses conservé ; pas d'influence sur le niveau en V2.
+8. **Demander à l'article** : réponses de 200 mots au plus, 10 questions par jour, mémoire de la conversation au sein d'un même article uniquement.
+9. **Carnet** : Save crée l'entrée du carnet, la retirer annule le Save ; export Markdown et BibTeX par le menu de partage d'Android.
+10. **Bilan du lundi** : en tête de l'édition du lundi, avant la première carte.
+11. **Reste de la V1** : notifications push avant la V2 ; les réglages entrent dans l'étape 3 (Profil).
+
+Contraintes : plafond mensuel maintenu à 15 $ ; toute fonctionnalité qui fait monter le coût mesuré est signalée dans le point qui la suit.
 
 ## 7. Ce qui n'est pas dans la V2
 

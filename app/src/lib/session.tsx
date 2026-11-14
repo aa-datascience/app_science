@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useR
 
 import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, saveState } from "./data";
 import { emptyState, markOpened, markShown, stateFor, toggleFeedback } from "./logic";
+import { configureForeground, registerPush } from "./notifications";
 import { supabase } from "./supabase";
 import type { EditionCard, FeedbackType, PaperFigure, ReadingState } from "./types";
 
@@ -82,6 +83,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (userId) void refresh();
     else setCards([]);
   }, [userId, refresh]);
+
+  // Notifications : à la connexion, on demande l'autorisation et on enregistre le jeton du téléphone.
+  useEffect(() => {
+    if (!userId) return;
+    void configureForeground();
+    void registerPush(true);
+  }, [userId]);
 
   const now = () => new Date().toISOString();
 

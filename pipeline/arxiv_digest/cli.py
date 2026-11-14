@@ -292,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
     nt = sub.add_parser("notify", parents=[common], help="envoie la notification du matin ou du soir si elle est due")
     nt.add_argument("kind", choices=["morning", "evening"])
     nt.add_argument("--dry-run", action="store_true", help="décide et affiche, sans envoyer ni marquer")
+    nt.add_argument("--at", metavar="HH:MM", help="pour les essais : fait comme s'il était cette heure locale")
+    nt.add_argument("--again", action="store_true", help="pour les essais : renvoie même si déjà envoyée aujourd'hui")
 
     o = sub.add_parser("open", parents=[common], help="simule l'ouverture d'un article : génère et stocke son détail")
     o.add_argument("arxiv_id")
@@ -321,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "notify":
         from .notify import notify
 
-        return notify(out=args.out, kind=args.kind, dry_run=args.dry_run)
+        return notify(out=args.out, kind=args.kind, dry_run=args.dry_run, at=args.at, again=args.again)
 
     needs_key = args.command != "run" or not args.no_llm
     if needs_key and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):

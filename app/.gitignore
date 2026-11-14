@@ -39,3 +39,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Clé privée du compte de service Firebase : à téléverser sur expo.dev, jamais dans le dépôt
+*firebase-adminsdk*.json
+*service-account*.json

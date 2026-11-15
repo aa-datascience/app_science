@@ -29,6 +29,7 @@ npx eas-cli@latest build --platform android --profile preview
 - La clé de signature Android est générée et conservée par Expo : les versions suivantes s'installent par-dessus la précédente.
 - À la fin, le terminal affiche un lien et un code QR : ouvrir le lien sur le téléphone, télécharger l'APK, autoriser l'installation depuis le navigateur.
 - Offre gratuite d'Expo : nombre de builds limité par mois, file d'attente possible.
+- Icônes (`app/assets/*.png`, source `icon.svg`) : générées par `pipeline/.venv/Scripts/python app/scripts/make_icons.py` depuis la racine. Une page à coin replié portant une oscillation amortie, aux couleurs de `theme.ts`. Changer l'icône demande un nouvel APK.
 
 ## Ce qui existe (V1, flux Aujourd'hui)
 

@@ -274,6 +274,60 @@ class SupabaseStore:
         rows = self._get("profile", select="settings,push_token", id="eq.1")
         return rows[0] if rows else {"settings": {}, "push_token": None}
 
+    # --- profil appris (V2) ---
+
+    def profile_state(self) -> dict:
+        """Réglages et curseurs d'apprentissage, poids, niveaux."""
+        rows = self._get("profile", select="settings,learned_feedback_id,learned_through", id="eq.1")
+        return {
+            "profile": rows[0] if rows else {},
+            "weights": self._get("profile_weights", select="kind,key,weight,baseline,locked"),
+            "levels": self._get("profile_levels", select="category,level,drift,locked"),
+        }
+
+    def feedback_since(self, after_id: int) -> list[dict]:
+        """Feedbacks pas encore appris, chacun avec le titre, le résumé et les catégories de l'article."""
+        return self._get(
+            "feedback", select="id,type,paper_id,papers(title,abstract,categories)", id=f"gt.{after_id}", order="id"
+        )
+
+    def latest_edition(self) -> str | None:
+        """Date de la dernière édition parue."""
+        r = self.http.get("/editions", params={"select": "date", "status": "in.(ready,fallback)", "order": "date.desc", "limit": "1"})
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0]["date"] if rows else None
+
+    def reading_between(self, after: str, before: str) -> dict:
+        """Ce qui a été lu dans les éditions publiées strictement entre deux dates."""
+        span = {"and": f"(edition_date.gt.{after},edition_date.lt.{before})"}
+        editions = self._get(
+            "editions", select="date", status="in.(ready,fallback)", **{"and": f"(date.gt.{after},date.lt.{before})"}
+        )
+        items = self._get("edition_items", select="edition_date,paper_id,papers(title,abstract,categories)", **span)
+        events = self._get(
+            "reading_events", select="edition_date,paper_id,event,duration_ms", event="in.(opened,viewed)", **span
+        )
+        explicit: set[str] = set()
+        ids = sorted({i["paper_id"] for i in items})
+        if ids:
+            rows = self._get(
+                "feedback", select="paper_id", type="in.(interesting,not_interesting,saved)",
+                paper_id=f"in.({','.join(ids)})",
+            )
+            explicit = {r["paper_id"] for r in rows}
+        return {"editions": sorted(e["date"] for e in editions), "items": items, "events": events, "explicit_ids": explicit}
+
+    def save_profile(self, weights: list[dict], levels: list[dict], changes: list[dict], cursor: dict) -> None:
+        """Écrit les poids et niveaux modifiés, le journal, puis avance les curseurs (en dernier)."""
+        now = datetime.now(timezone.utc).isoformat()
+        self._upsert("profile_weights", [{**w, "updated_at": now} for w in weights], "kind,key")
+        self._upsert("profile_levels", [{**r, "updated_at": now} for r in levels], "category")
+        if changes:
+            self.http.post("/profile_changes", headers={"Prefer": "return=minimal"}, json=changes).raise_for_status()
+        if cursor:
+            self.http.patch("/profile", params={"id": "eq.1"}, json=cursor).raise_for_status()
+
     def mark_notified(self, day: str, kind: str) -> None:
         body = {f"{kind}_notified_at": datetime.now(timezone.utc).isoformat()}
         self.http.patch("/editions", params={"date": f"eq.{day}"}, json=body).raise_for_status()

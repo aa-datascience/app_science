@@ -1,5 +1,4 @@
 -- V2 (d) — Carnet : articles sauvegardés, notes, tags, recherche.
--- NON APPLIQUÉE. À exécuter seulement après validation de docs/V2_PLAN.md.
 
 create table notebook (
   paper_id    text primary key references papers on delete cascade,

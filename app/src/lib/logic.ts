@@ -1,6 +1,18 @@
 // Logique pure, sans dépendance à React Native : testée par `npm test` (node --test).
 
-import type { EditionCard, FeedbackType, FigureImage, PaperFigure, ReadingState } from "./types.ts";
+import type {
+  AppSettings,
+  EditionCard,
+  FeedbackType,
+  FigureImage,
+  Level,
+  NotebookEntry,
+  PaperFigure,
+  ProfileChange,
+  ReadingState,
+  WeekSummary,
+  Weight,
+} from "./types.ts";
 
 export const MINUTES_PER_PAPER = 3;
 
@@ -153,3 +165,193 @@ export function figuresFor(
     detail: usable.filter((f) => f.roles.includes("detail")).sort((a, b) => rank(a) - rank(b)),
   };
 }
+
+// ---------- V2 : carnet ----------
+
+/** « superconductivity, To Read ,  » -> ["superconductivity", "to read"] */
+export function parseTags(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.split(",")) {
+    const t = raw.trim().toLowerCase().replace(/\s+/g, " ");
+    if (t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+export function allTags(entries: Pick<NotebookEntry, "tags">[]): string[] {
+  return [...new Set(entries.flatMap((e) => e.tags))].sort();
+}
+
+/** Recherche sur le téléphone (donc aussi hors ligne) : tous les mots doivent apparaître quelque part. */
+export function filterNotebook(entries: NotebookEntry[], query: string, tag: string | null): NotebookEntry[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return entries.filter((e) => {
+    if (tag && !e.tags.includes(tag)) return false;
+    if (!words.length) return true;
+    const text = [e.title, e.plain_title ?? "", e.finding ?? "", e.note, e.tags.join(" "), e.authors.join(" "), e.paper_id]
+      .join(" ")
+      .toLowerCase();
+    return words.every((w) => text.includes(w));
+  });
+}
+
+/** Les identifiants arXiv commencent par l'année et le mois : « 2611.01234 » -> 2026. */
+export function arxivYear(id: string): string {
+  const m = /^(\d{2})\d{2}\./.exec(id);
+  return m ? `20${m[1]}` : "";
+}
+
+export function toMarkdown(entries: NotebookEntry[]): string {
+  const blocks = entries.map((e) => {
+    const lines = [`## ${e.title}`, "", `${e.authors.join(", ")} — [arXiv:${e.paper_id}](https://arxiv.org/abs/${e.paper_id})`];
+    if (e.plain_title) lines.push("", `**In plain words:** ${e.plain_title}`);
+    if (e.finding) lines.push("", e.finding);
+    if (e.tags.length) lines.push("", `Tags: ${e.tags.join(", ")}`);
+    if (e.note.trim()) lines.push("", "### Notes", "", e.note.trim());
+    lines.push("", `Saved on ${e.saved_at.slice(0, 10)}`);
+    return lines.join("\n");
+  });
+  return `# Notebook\n\n${blocks.join("\n\n---\n\n")}\n`;
+}
+
+const STOP = new Set(["a", "an", "the", "on", "of", "in", "for", "and", "to", "with", "from", "at", "by"]);
+const ascii = (s: string) => s.normalize("NFD").replace(/[^a-zA-Z]/g, "").toLowerCase();
+
+/** Clé BibTeX : nom du premier auteur, année, premier mot significatif du titre. */
+export function bibKey(e: Pick<NotebookEntry, "paper_id" | "title" | "authors">): string {
+  const last = ascii((e.authors[0] ?? "").trim().split(/\s+/).pop() ?? "") || "arxiv";
+  const word = e.title.split(/\s+/).map(ascii).find((w) => w && !STOP.has(w)) ?? "";
+  return `${last}${arxivYear(e.paper_id)}${word}`;
+}
+
+export function toBibtex(entries: NotebookEntry[]): string {
+  const used = new Map<string, number>();
+  return entries
+    .map((e) => {
+      const base = bibKey(e);
+      const n = used.get(base) ?? 0;
+      used.set(base, n + 1);
+      const key = n ? `${base}${String.fromCharCode(97 + n)}` : base; // doublon : suffixe b, c…
+      const fields = [
+        `  title = {{${e.title}}}`,
+        `  author = {${e.authors.join(" and ")}}`,
+        `  year = {${arxivYear(e.paper_id)}}`,
+        `  eprint = {${e.paper_id}}`,
+        "  archivePrefix = {arXiv}",
+        `  primaryClass = {${e.primary_category || e.categories[0] || ""}}`,
+        `  url = {https://arxiv.org/abs/${e.paper_id}}`,
+      ];
+      return `@misc{${key},\n${fields.join(",\n")}\n}`;
+    })
+    .join("\n\n")
+    .concat("\n");
+}
+
+// ---------- V2 : statistiques et bilan du lundi ----------
+
+export const percent = (rate: number | null) => (rate === null ? "–" : `${Math.round(rate * 100)}%`);
+
+/** « 2026-11-09 » -> « 9 Nov » */
+export function shortDate(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]}`;
+}
+
+export function isMonday(iso: string): boolean {
+  return new Date(`${iso}T12:00:00Z`).getUTCDay() === 1;
+}
+
+/** Le bilan n'est montré que le lundi, et seulement s'il y a eu quelque chose à lire la semaine passée. */
+export function summaryFor(date: string, summary: WeekSummary | null): WeekSummary | null {
+  return summary && isMonday(date) && summary.shown > 0 ? summary : null;
+}
+
+// ---------- V2 : profil ----------
+
+export const WEIGHT_MIN = 0.2;
+export const WEIGHT_MAX = 2.0;
+export const SIZE_MIN = 3;
+export const SIZE_MAX = 12;
+
+/** Un cran de 0,1 sur la force du poids ; un mot-clé négatif garde son signe. */
+export function stepWeight(weight: number, direction: 1 | -1): number {
+  const size = Math.abs(weight) + 0.1 * direction;
+  const clamped = Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, Math.round(size * 10) / 10));
+  return weight < 0 ? -clamped : clamped;
+}
+
+/** « 07:30 » + 30 min -> « 08:00 », borné entre deux heures. */
+export function shiftTime(time: string, minutes: number, min: string, max: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const lo = Number(min.slice(0, 2)) * 60 + Number(min.slice(3));
+  const hi = Number(max.slice(0, 2)) * 60 + Number(max.slice(3));
+  const t = Math.max(lo, Math.min(hi, h * 60 + m + minutes));
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+}
+
+export const weightId = (w: Pick<Weight, "kind" | "key">) => `${w.kind}:${w.key}`;
+
+type ManualChange = { source: "manual"; kind: string; key: string; old_value: string | null; new_value: string; reason: string };
+
+/**
+ * Ce qu'il faut écrire en base quand le profil est modifié à la main. Un poids modifié déplace aussi
+ * sa valeur de repos : l'apprentissage repart de la valeur saisie.
+ */
+export function profileDiff(
+  before: { weights: Weight[]; levels: Level[] },
+  after: { weights: Weight[]; levels: Level[] },
+): { weights: Weight[]; removed: Weight[]; levels: Level[]; changes: ManualChange[] } {
+  const old = new Map(before.weights.map((w) => [weightId(w), w]));
+  const kept = new Set(after.weights.map(weightId));
+  const changes: ManualChange[] = [];
+  const weights: Weight[] = [];
+  const log = (kind: string, key: string, a: string | null, b: string, reason: string) =>
+    changes.push({ source: "manual", kind, key, old_value: a, new_value: b, reason });
+  for (const w of after.weights) {
+    const o = old.get(weightId(w));
+    if (!o) {
+      weights.push({ ...w, baseline: w.weight });
+      log(w.kind, w.key, null, w.weight.toFixed(3), "added by hand");
+    } else if (o.weight !== w.weight) {
+      weights.push({ ...w, baseline: w.weight });
+      log(w.kind, w.key, o.weight.toFixed(3), w.weight.toFixed(3), "set by hand");
+    } else if (o.locked !== w.locked) {
+      weights.push(w);
+    }
+  }
+  const removed = before.weights.filter((w) => !kept.has(weightId(w)));
+  for (const w of removed) log(w.kind, w.key, w.weight.toFixed(3), "removed", "removed by hand");
+  const oldLevels = new Map(before.levels.map((l) => [l.category, l]));
+  const levels: Level[] = [];
+  for (const l of after.levels) {
+    const o = oldLevels.get(l.category);
+    const was = o?.level ?? "intermediate";
+    if (was !== l.level) {
+      levels.push({ ...l, drift: 0 });
+      log("level", l.category, was, l.level, "set by hand");
+    } else if ((o?.locked ?? false) !== l.locked) {
+      levels.push(l);
+    }
+  }
+  return { weights, removed, levels, changes };
+}
+
+/** Le dernier changement journalisé de chaque poids ou niveau (les changements arrivent du plus récent au plus ancien). */
+export function lastChanges(changes: ProfileChange[]): Record<string, ProfileChange> {
+  const out: Record<string, ProfileChange> = {};
+  for (const c of changes) out[`${c.kind}:${c.key}`] ??= c;
+  return out;
+}
+
+export function describeChange(c: ProfileChange | undefined): string {
+  if (!c) return "";
+  const move = c.old_value ? `${c.old_value} → ${c.new_value}` : c.new_value;
+  return `${shortDate(c.changed_at.slice(0, 10))}: ${move}${c.reason ? ` · ${c.reason}` : ""}`;
+}
+
+export const DEFAULT_SETTINGS: Required<AppSettings> = {
+  edition_size: 8,
+  morning_time: "07:30",
+  evening_time: "20:00",
+  timezone: "Europe/Zurich",
+};

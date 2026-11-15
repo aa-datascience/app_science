@@ -38,7 +38,10 @@ npx eas-cli@latest build --platform android --profile preview
 | Today | `src/app/(tabs)/index.tsx` | Date, nombre d'articles, temps estimé, Start / Continue ; écran de fin si l'édition est terminée |
 | Cartes | `src/app/edition.tsx` | Une carte par écran, glissement horizontal, progression, feedback, puis fin d'édition |
 | Vue profondeur | `src/app/paper/[id].tsx` | État de chargement, explication Curious / Physicist, contexte, affirmations sourcées, lien arXiv |
-| Settings | `src/app/(tabs)/settings.tsx` | Compte et déconnexion |
+| Settings | `src/app/(tabs)/settings.tsx` | Compte, état des notifications, entrée vers le profil, déconnexion |
+| Notebook (V2) | `src/app/(tabs)/notebook.tsx`, `src/app/notebook/[id].tsx` | Articles sauvegardés, recherche, tags, note, export Markdown et BibTeX |
+| Stats (V2) | `src/app/(tabs)/stats.tsx` | Lecture par semaine et par sous-catégorie, sur 4, 8 ou 12 semaines |
+| Profil (V2) | `src/app/profile.tsx` | Poids appris, niveaux, catégories suivies, nombre d'articles, heures des notifications |
 
 - **Données** (`src/lib/data.ts`) : réseau d'abord, cache du téléphone en secours. Le détail d'un article vient du cache, sinon de la table `details`, sinon de l'Edge Function `open-paper` (première ouverture).
 - **Écritures** : feedback, événements de lecture (`shown`, `opened`, `edition_completed`) et fin d'édition passent par une file d'attente gardée sur le téléphone, envoyée dès que le réseau répond.
@@ -63,4 +66,5 @@ Premier APK construit le 14 novembre 2026 (sans les figures) : https://expo.dev/
 - Hors ligne : écrit, non testé.
 - KaTeX est chargé depuis Internet : hors ligne, au premier affichage, les équations restent en LaTeX brut.
 - Réglages (nombre d'articles, catégories, heures des notifications), notifications push (jeton Expo, projet Firebase) et build APK : étapes suivantes de la spec.
-- Carnet, Concepts, Stats : V2.
+- V2, étapes 1 à 3 (carnet, stats, bilan du lundi, profil) : vérifiées dans un navigateur le 15 novembre 2026, pas encore sur téléphone ; détail dans `docs/V2_PLAN.md`, section 8.
+- Concepts, questions, « Demander à l'article » : étapes 4 et 5 de la V2, non codées.

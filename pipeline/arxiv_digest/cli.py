@@ -5,6 +5,7 @@
     python -m arxiv_digest run --batch      # idem, cartes via l'API Batches (-50 %) : pipeline de nuit
     python -m arxiv_digest open 2611.01234  # simule l'ouverture d'un article : génère son détail
     python -m arxiv_digest compare          # essai de coût et de qualité (voir compare.py)
+    python -m arxiv_digest profile          # apprend des feedbacks en attente et affiche le profil (gratuit)
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from .fulltext import fetch_fulltext
 from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused
 from .models import Candidate, Edition, EditionItem, Paper, Ranked
 from .prefilter import select_candidates
+from .profile import sync_profile
 from .scoring import score_all, select_edition
 from .steps import Article, generate_detail, make_article, make_cards, rank
 from .store import _write_json, make_store
@@ -86,6 +88,13 @@ def run(
         print(f"Édition {day} déjà prête : rien à faire (--force pour la refaire).")
         return 0
     seen_ids = store.seen_ids()
+    # Profil appris : poids, niveaux et réglages de l'app remplacent ceux de config.yaml.
+    # Un essai --no-llm lit le profil sans rien apprendre.
+    try:
+        cfg = sync_profile(store, cfg, day, learning=not no_llm)
+    except httpx.HTTPError as e:
+        notes.append("Profil appris illisible : édition faite avec config.yaml.")
+        log.error("profil: lecture ou écriture impossible (%s) ; poids de config.yaml utilisés", e)
 
     n_papers, candidates, latest = ingest(cfg, day=day, seen_ids=seen_ids, fixtures=fixtures)
     # arXiv met ses flux à jour à minuit (heure de la côte Est). Avant cela, ou le week-end, le flux
@@ -238,6 +247,10 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
         )
         return 3
 
+    try:
+        cfg = sync_profile(store, cfg, day, learning=False)  # niveau du lecteur pour ce sous-domaine
+    except httpx.HTTPError as e:
+        log.error("profil: lecture impossible (%s) ; niveaux de config.yaml utilisés", e)
     llm = LLM(cfg, store.log_usage, day)
     try:
         art = store.article(paper)
@@ -296,6 +309,11 @@ def main(argv: list[str] | None = None) -> int:
     nt.add_argument("--at", metavar="HH:MM", help="pour les essais : fait comme s'il était cette heure locale")
     nt.add_argument("--again", action="store_true", help="pour les essais : renvoie même si déjà envoyée aujourd'hui")
 
+    sub.add_parser(
+        "profile", parents=[common],
+        help="apprend des feedbacks en attente et affiche le profil (sans modèle ; ne fait rien sans base)",
+    )
+
     o = sub.add_parser("open", parents=[common], help="simule l'ouverture d'un article : génère et stocke son détail")
     o.add_argument("arxiv_id")
 
@@ -326,6 +344,21 @@ def main(argv: list[str] | None = None) -> int:
         from .notify import notify
 
         return notify(out=args.out, kind=args.kind, dry_run=args.dry_run, at=args.at, again=args.again)
+
+    if args.command == "profile":
+        day = args.date or datetime.now(ZoneInfo("Europe/Zurich")).date().isoformat()
+        base = load_config(args.config)
+        cfg = sync_profile(make_store(args.out), base, day)
+        if cfg is base:
+            print("Pas de base configurée : le profil est celui de config.yaml.")
+            return 0
+        print(f"Édition : {cfg.edition.size} articles")
+        for title, table in (
+            ("Catégories", cfg.categories.followed), ("Mots-clés", cfg.prefilter.keywords_positive),
+            ("Mots-clés négatifs", cfg.prefilter.keywords_negative), ("Niveaux", cfg.profile.levels),
+        ):
+            print(f"{title} : " + (", ".join(f"{k} {v}" for k, v in table.items()) or "aucun"))
+        return 0
 
     needs_key = args.command != "run" or not args.no_llm
     if needs_key and not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):

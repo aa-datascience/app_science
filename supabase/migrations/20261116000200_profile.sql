@@ -1,5 +1,4 @@
 -- V2 (a) — Profil appris à partir des feedbacks, visible et modifiable à la main.
--- NON APPLIQUÉE. À exécuter seulement après validation de docs/V2_PLAN.md.
 --
 -- Aujourd'hui les poids vivent dans config.yaml. En V2 ils vivent ici : config.yaml ne sert plus
 -- qu'à les initialiser. La mise à jour est faite par le pipeline (Python, sans modèle) après chaque
@@ -40,9 +39,19 @@ create table profile_changes (
 );
 create index profile_changes_key on profile_changes (kind, key, changed_at desc);
 
--- Où l'apprentissage s'est arrêté : les feedbacks jusqu'à cet identifiant ont déjà été pris en compte.
+-- Où l'apprentissage s'est arrêté.
+--   learned_feedback_id : les feedbacks explicites jusqu'à cet identifiant sont déjà pris en compte ;
+--   learned_through     : les signaux implicites (lu, ignoré) des éditions jusqu'à cette date aussi.
+--                         Une édition n'est traitée que le lendemain, quand sa lecture est terminée.
 alter table profile add column learned_feedback_id bigint not null default 0;
-alter table profile add column learned_at timestamptz;
+alter table profile add column learned_through date;
+
+-- Durée d'affichage d'une carte : « ignoré » ne compte que si la carte est restée au moins 2 secondes
+-- à l'écran. L'app envoie un événement « viewed » avec la durée quand la carte quitte l'écran.
+alter table reading_events add column duration_ms int;
+alter table reading_events drop constraint reading_events_event_check;
+alter table reading_events add constraint reading_events_event_check
+  check (event in ('shown', 'viewed', 'opened', 'section_viewed', 'question_asked', 'edition_completed'));
 
 alter table profile_weights enable row level security;
 alter table profile_levels  enable row level security;

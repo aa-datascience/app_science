@@ -8,7 +8,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-nat
 
 import { FigureImage, FigureViewer } from "../../components/Figure";
 import { Button, Label, MathText, Toggle } from "../../components/ui";
-import { type DetailResult, loadDetail } from "../../lib/data";
+import { cachedNotebook, type DetailResult, loadDetail } from "../../lib/data";
 import { figuresFor } from "../../lib/logic";
 import { useApp } from "../../lib/session";
 import { colors, serif, space } from "../../lib/theme";
@@ -19,6 +19,17 @@ export default function Paper() {
   const { cards, figures, refreshFigures, opened } = useApp();
   const [viewing, setViewing] = useState<Img | null>(null);
   const card = cards.find((c) => c.arxiv_id === id);
+  // Article ouvert depuis le carnet, hors de l'édition du jour : titres lus dans le carnet.
+  const [saved, setSaved] = useState<{ plain: string | null; title: string } | null>(null);
+  useEffect(() => {
+    if (card) return;
+    cachedNotebook().then((all) => {
+      const e = all.find((x) => x.paper_id === id);
+      setSaved(e ? { plain: e.plain_title, title: e.title } : null);
+    });
+  }, [id, card]);
+  const plainTitle = card?.card.plain_title ?? saved?.plain;
+  const title = card?.title ?? saved?.title;
   const [result, setResult] = useState<DetailResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [level, setLevel] = useState<"lay" | "expert">("lay");
@@ -44,8 +55,8 @@ export default function Paper() {
 
   return (
     <ScrollView style={styles.wrap} contentContainerStyle={styles.content}>
-      {card ? <MathText text={card.card.plain_title} size={24} style={{ lineHeight: 32 }} /> : null}
-      {card ? <Text style={styles.original}>{card.title}</Text> : null}
+      {plainTitle ? <MathText text={plainTitle} size={24} style={{ lineHeight: 32 }} /> : null}
+      {title ? <Text style={styles.original}>{title}</Text> : null}
 
       {result === null && (
         <View style={styles.state}>

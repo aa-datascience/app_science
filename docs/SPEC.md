@@ -105,4 +105,4 @@ Les cartes et la vue profondeur montrent des figures de l'article, choisies sans
 2. Schéma Supabase, écriture du pipeline dans la base, Edge Function `open-paper` — fait et vérifié sur le vrai projet (`docs/SUPABASE.md`).
 3. Workflows GitHub Actions (pipeline de nuit, notifications) — écrits et testés (`docs/GITHUB_ACTIONS.md`) ; l'envoi réel d'une notification attend l'app.
 4. App Android : flux Aujourd'hui avec état de chargement du détail — fait, vérifié dans un navigateur et sur téléphone avec Expo Go (`docs/APP.md`) ; puis réglages, puis notifications, puis build APK.
-5. Ensuite seulement, V2 puis V3.
+5. V2 : étapes 1 à 3 faites (carnet, stats et bilan du lundi, profil appris) ; étapes 4 et 5 à venir (`docs/V2_PLAN.md`). Puis V3.

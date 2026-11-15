@@ -1,20 +1,18 @@
 # Notifications : une le matin (édition prête), un rappel le soir si l'édition n'est pas terminée.
 #
-# GitHub ne connaît que l'heure UTC et pas l'heure d'été : chaque notification a deux créneaux,
-# et la commande n'envoie que si l'heure locale réglée est atteinte et que rien n'a déjà été
-# envoyé ce jour-là (heures par défaut : 7 h 30 et 20 h, Europe/Zurich).
-#   matin  05:35 et 06:35 UTC  ->  7 h 35 en été, 7 h 35 en hiver
-#   soir   18:05 et 19:05 UTC  ->  20 h 05 en été, 20 h 05 en hiver
-# Une heure réglée dans l'app est donc arrondie au créneau suivant.
+# Les heures se règlent dans l'app (écran Profil ; par défaut 7 h 30 et 20 h, Europe/Zurich).
+# GitHub ne connaît que l'heure UTC : un créneau par heure couvre les plages réglables, été comme
+# hiver, et la commande n'envoie que si l'heure locale réglée est atteinte et que rien n'a déjà été
+# envoyé ce jour-là. Une notification part donc au premier créneau après l'heure réglée.
+#   matin  04:35 à 08:35 UTC  ->  réglable de 6 h à 10 h
+#   soir   15:05 à 20:05 UTC  ->  réglable de 17 h à 22 h
 
 name: Notifications
 
 on:
   schedule:
-    - cron: "35 5 * * *"
-    - cron: "35 6 * * *"
-    - cron: "5 18 * * *"
-    - cron: "5 19 * * *"
+    - cron: "35 4-8 * * *"
+    - cron: "5 15-20 * * *"
   workflow_dispatch:
     inputs:
       kind:

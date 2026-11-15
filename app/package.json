@@ -9,10 +9,12 @@
     "expo": "~58.0.25",
     "expo-constants": "~58.0.16",
     "expo-device": "~58.0.5",
+    "expo-file-system": "~58.0.13",
     "expo-image": "~58.0.18",
     "expo-linking": "~58.0.17",
     "expo-notifications": "~58.1.9",
     "expo-router": "~58.0.31",
+    "expo-sharing": "~58.0.23",
     "expo-status-bar": "~58.0.5",
     "expo-web-browser": "~58.0.8",
     "react": "19.3.0",
@@ -34,7 +36,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/lib/logic.test.ts"
+    "test": "node --test src/lib/logic.test.ts src/lib/logic_v2.test.ts"
   },
   "private": true
 }

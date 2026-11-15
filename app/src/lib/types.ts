@@ -76,6 +76,77 @@ export type OutboxItem =
   | { kind: "unfeedback"; paper_id: string; type: FeedbackType }
   | {
       kind: "event";
-      row: { paper_id: string | null; edition_date: string; event: string; section?: string; created_at: string };
+      row: {
+        paper_id: string | null;
+        edition_date: string;
+        event: string;
+        section?: string;
+        duration_ms?: number; // événement « viewed » : temps passé sur la carte
+        created_at: string;
+      };
     }
-  | { kind: "complete"; date: string; at: string };
+  | { kind: "complete"; date: string; at: string }
+  | { kind: "notebook_add"; paper_id: string; at: string }
+  | { kind: "notebook_remove"; paper_id: string }
+  | { kind: "notebook_update"; paper_id: string; note: string; tags: string[]; at: string };
+
+// ---------- V2 : carnet, statistiques, profil ----------
+
+/** Une ligne de la vue notebook_entries. */
+export type NotebookEntry = {
+  paper_id: string;
+  note: string;
+  tags: string[];
+  saved_at: string;
+  title: string;
+  authors: string[];
+  categories: string[];
+  primary_category: string;
+  plain_title: string | null;
+  finding: string | null;
+};
+
+export type WeekStats = {
+  week: string; // lundi de la semaine
+  shown: number;
+  read: number;
+  skipped: number;
+  saved: number;
+  read_rate: number | null;
+  editions_completed: number;
+};
+
+export type CategoryStats = { category: string; shown: number; read: number; read_rate: number | null };
+
+/** Résultat de get_stats(weeks). */
+export type Stats = { weeks: WeekStats[]; categories: CategoryStats[] };
+
+/** Résultat de last_week_summary() : le bilan affiché en tête de l'édition du lundi. */
+export type WeekSummary = {
+  week: string;
+  shown: number;
+  read: number;
+  skipped: number;
+  saved: number;
+  editions_completed: number;
+  most_read_category: string | null;
+  most_skipped_category: string | null;
+};
+
+export type Weight = { kind: "category" | "keyword" | "author"; key: string; weight: number; baseline: number; locked: boolean };
+export type LevelName = "beginner" | "intermediate" | "expert";
+export type Level = { category: string; level: LevelName; drift: number; locked: boolean };
+export type ProfileChange = {
+  kind: string;
+  key: string;
+  changed_at: string;
+  source: string;
+  old_value: string | null;
+  new_value: string;
+  reason: string | null;
+};
+
+/** profile.settings : réglages lus par le pipeline de nuit et par les notifications. */
+export type AppSettings = { edition_size?: number; morning_time?: string; evening_time?: string; timezone?: string };
+
+export type ProfileData = { settings: AppSettings; weights: Weight[]; levels: Level[]; changes: ProfileChange[] };

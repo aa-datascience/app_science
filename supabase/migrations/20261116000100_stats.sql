@@ -1,5 +1,4 @@
 -- V2 (e) — Statistiques de lecture et bilan de la semaine. Tout en SQL, sans modèle.
--- NON APPLIQUÉE. À exécuter seulement après validation de docs/V2_PLAN.md.
 --
 -- Définitions (spec §8) :
 --   montré  : la carte est apparue à l'écran          (reading_events.event = 'shown')

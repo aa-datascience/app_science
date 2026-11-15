@@ -4,11 +4,11 @@ import type { Session } from "@supabase/supabase-js";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 
-import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, saveState } from "./data";
-import { emptyState, markOpened, markShown, stateFor, toggleFeedback } from "./logic";
+import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, loadWeekSummary, saveState } from "./data";
+import { emptyState, isMonday, markOpened, markShown, stateFor, summaryFor, toggleFeedback } from "./logic";
 import { configureForeground, registerPush } from "./notifications";
 import { supabase } from "./supabase";
-import type { EditionCard, FeedbackType, PaperFigure, ReadingState } from "./types";
+import type { EditionCard, FeedbackType, PaperFigure, ReadingState, WeekSummary } from "./types";
 
 type Ctx = {
   session: Session | null;
@@ -20,9 +20,12 @@ type Ctx = {
   loading: boolean;
   fromCache: boolean;
   refresh: () => Promise<void>;
+  summary: WeekSummary | null; // bilan de la semaine passée, le lundi seulement
   shown: (id: string, index: number) => void;
+  viewed: (id: string, ms: number) => void; // temps passé sur une carte, envoyé quand elle quitte l'écran
   opened: (id: string) => void;
   feedback: (id: string, type: FeedbackType) => void;
+  unsave: (id: string) => void; // retirer du carnet annule le Save
   complete: () => void;
 };
 
@@ -42,6 +45,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ReadingState>(emptyState(""));
   const [loading, setLoading] = useState(false);
   const [fromCache, setFromCache] = useState(false);
+  const [summary, setSummary] = useState<WeekSummary | null>(null);
+  const cardIds = useRef<string[]>([]);
   const stateRef = useRef(state);
 
   const update = useCallback((next: ReadingState) => {
@@ -67,10 +72,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Une édition terminée sur un autre appareil l'est aussi ici.
     const completed = saved.completed || Boolean(result.cards[0]?.completed_at);
     setCards(result.cards);
+    cardIds.current = result.cards.map((c) => c.arxiv_id);
     setFromCache(result.fromCache);
     update({ ...saved, completed });
     setLoading(false);
     void flushOutbox();
+    setSummary(date && isMonday(date) ? summaryFor(date, await loadWeekSummary(date)) : null);
     setFigures(await loadFigures(result.cards.map((c) => c.arxiv_id)));
   }, [update]);
 
@@ -114,9 +121,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
+  const viewed = useCallback((id: string, ms: number) => {
+    const s = stateRef.current;
+    if (!s.date) return;
+    const row = { paper_id: id, edition_date: s.date, event: "viewed", duration_ms: Math.round(ms), created_at: now() };
+    void enqueue({ kind: "event", row });
+  }, []);
+
   const opened = useCallback(
     (id: string) => {
       const s = stateRef.current;
+      if (!cardIds.current.includes(id)) return; // article rouvert depuis le carnet : hors de l'édition du jour
       const first = !s.opened.includes(id);
       update(markOpened(s, id));
       if (first) void enqueue({ kind: "event", row: { paper_id: id, edition_date: s.date, event: "opened", created_at: now() } });
@@ -130,6 +145,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       update(next);
       for (const t of removed) void enqueue({ kind: "unfeedback", paper_id: id, type: t });
       if (added) void enqueue({ kind: "feedback", row: { paper_id: id, type: added, created_at: now() } });
+      // Save crée l'entrée du carnet ; l'annuler la retire.
+      if (added === "saved") void enqueue({ kind: "notebook_add", paper_id: id, at: now() });
+      if (removed.includes("saved")) void enqueue({ kind: "notebook_remove", paper_id: id });
+    },
+    [update],
+  );
+
+  const unsave = useCallback(
+    (id: string) => {
+      const s = stateRef.current;
+      const given = s.feedback[id] ?? [];
+      if (given.includes("saved")) update({ ...s, feedback: { ...s.feedback, [id]: given.filter((t) => t !== "saved") } });
+      void enqueue({ kind: "unfeedback", paper_id: id, type: "saved" });
+      void enqueue({ kind: "notebook_remove", paper_id: id });
     },
     [update],
   );
@@ -144,8 +173,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <Context.Provider value={{
-        session, ready, cards, figures, refreshFigures, state, loading, fromCache, refresh, shown, opened, feedback,
-        complete,
+        session, ready, cards, figures, refreshFigures, state, loading, fromCache, refresh, summary, shown, viewed,
+        opened, feedback, unsave, complete,
       }}>
       {children}
     </Context.Provider>

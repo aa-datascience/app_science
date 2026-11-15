@@ -1,6 +1,6 @@
 # Plan de la V2
 
-État : **plan validé le 14 novembre 2026** (décisions en section 6). Rien de la V2 n'est encore codé : elle commence après les notifications push, le deuxième APK et le retour de vérification sur téléphone. Les migrations de `supabase/v2_pending/` seront appliquées une à une, au fil des étapes, avec un point après chaque fonctionnalité.
+État : **plan validé le 14 novembre 2026** (décisions en section 6). **Étapes 1 à 3 faites le 15 novembre 2026** (carnet, stats et bilan du lundi, profil appris et écran Profil) : voir la section 8. Étapes 4 et 5 : rien n'est codé, leurs migrations restent dans `supabase/v2_pending/`.
 
 Périmètre (spec d'origine, sections 5, 6, 7 et 10) : (a) profil appris et écran Profil, (b) fiches concepts et questions de compréhension, (c) « Demander à l'article », (d) carnet, (e) statistiques et bilan du lundi.
 
@@ -24,9 +24,9 @@ Fichiers dans `supabase/v2_pending/`, vérifiés ensemble sur une copie du sché
 
 | Fichier | Ajoute | Écrit par |
 | --- | --- | --- |
-| `01_notebook.sql` | table `notebook` (note, tags), vue `notebook_entries`, fonction `search_notebook(q)` ; reprend les articles déjà marqués Save | l'app |
-| `02_stats.sql` | vue `reading_log`, fonctions `get_stats(weeks)` et `last_week_summary()` | personne (lecture seule) |
-| `03_profile.sql` | tables `profile_weights`, `profile_levels`, `profile_changes` ; curseur d'apprentissage dans `profile` | le pipeline et l'app (modifications à la main) |
+| `01_notebook.sql` (appliquée : `migrations/20261116000000_notebook.sql`) | table `notebook` (note, tags), vue `notebook_entries`, fonction `search_notebook(q)` ; reprend les articles déjà marqués Save | l'app |
+| `02_stats.sql` (appliquée : `migrations/20261116000100_stats.sql`) | vue `reading_log`, fonctions `get_stats(weeks)` et `last_week_summary()` | personne (lecture seule) |
+| `03_profile.sql` (appliquée : `migrations/20261116000200_profile.sql`) | tables `profile_weights`, `profile_levels`, `profile_changes` ; curseur d'apprentissage dans `profile` | le pipeline et l'app (modifications à la main) |
 | `04_concepts_questions.sql` | tables `concepts`, `concept_links`, `paper_concepts`, `questions`, `question_attempts` ; vue `concept_cards` | la fonction `open-paper` ; l'app pour les réponses aux questions |
 | `05_ask_paper.sql` | table `qa_messages` | la fonction `ask-paper` |
 
@@ -121,3 +121,41 @@ Contraintes : plafond mensuel maintenu à 15 $ ; toute fonctionnalité qui fait 
 ## 7. Ce qui n'est pas dans la V2
 
 Graphe de concepts, révision espacée, dossier de la semaine, bouton « signaler une erreur » : V3 (spec §10).
+
+## 8. État d'avancement
+
+### Étapes 1 à 3, faites le 15 novembre 2026
+
+Aucune de ces trois étapes n'appelle de modèle : **le coût mesuré ne change pas**.
+
+**Carnet.** Onglet Notebook : liste des articles sauvegardés, recherche (sur le téléphone, donc aussi hors ligne), filtre par tag, fiche avec note et tags, export Markdown et BibTeX par le menu de partage. Save crée l'entrée, la retirer annule le Save. La fonction SQL `search_notebook` existe mais l'app ne s'en sert pas : la recherche locale trouve aussi les débuts de mots.
+
+**Stats et bilan du lundi.** Onglet Stats : par semaine (montrés, lus, ignorés, taux, éditions terminées sur 7) et par sous-catégorie, sur 4, 8 ou 12 semaines. Le lundi, une page « Last week » précède la première carte, si quelque chose a été montré la semaine passée.
+
+**Profil appris.** `profile.py` applique les règles de la décision 4, avant chaque édition de nuit :
+
+- avis explicites pris en compte dès la nuit suivante ; un avis retiré après coup n'est pas « désappris » ;
+- signaux implicites (lu, ignoré) et retour vers la valeur de repos : une fois par édition **terminée**, c'est-à-dire remplacée par une édition plus récente — donc avec un jour de décalage ;
+- un article qui a reçu un avis explicite (interesting, not for me, Save) ne compte pas en implicite ;
+- catégorie principale : changement entier ; catégorie secondaire : la moitié ; mots-clés déjà présents dont le texte figure dans le titre ou le résumé : changement entier ;
+- les mots-clés négatifs (poids négatif en base) ne sont jamais appris ;
+- niveaux : +1 par « too easy », −1 par « too hard » sur la catégorie principale ; à ±3, le niveau change d'un cran et le compteur repart de zéro ;
+- le seul retour vers la valeur de repos n'est pas journalisé dans `profile_changes` (il masquerait la dernière vraie raison).
+
+L'app enregistre le temps passé sur chaque carte (événement `viewed`, `duration_ms`) : « ignoré » demande au moins 2 secondes cumulées. Les éditions lues avec un APK antérieur n'ont pas ces durées : leurs cartes non ouvertes ne comptent pas.
+
+Écran Profil (depuis Settings) : poids des catégories et des mots-clés avec crans de 0,1, verrou, dernier changement et sa raison ; niveaux par sous-domaine ; ajout et retrait de catégories ; nombre d'articles par édition (3 à 12) ; heures des notifications. Une valeur saisie à la main devient la valeur de repos. Les modifications sont écrites d'un coup par « Save changes », en ligne seulement.
+
+Non fait dans cette étape, volontairement : l'ajout des titres aimés et rejetés au prompt de classement (section 3). Il modifie un prompt : il viendra avec l'étape 4, pour mesurer un effet à la fois.
+
+### Vérifié
+
+- Migrations sur une copie du schéma (Postgres embarqué), puis appliquées au vrai projet le 15 novembre 2026.
+- Tests : règles d'apprentissage, signaux implicites, application à la configuration, lecture et écriture en base simulées (`pipeline/tests/test_profile.py`) ; export, recherche, bilan du lundi, modifications du profil (`app/src/lib/logic_v2.test.ts`).
+- Dans un navigateur, sur le vrai projet : Stats, Notebook (note et tags écrits puis relus), Profil (réglage et verrou écrits puis relus), événement `viewed` reçu en base ; profil initialisé et premier apprentissage par `python -m arxiv_digest profile`.
+
+### Pas encore vérifié
+
+- Sur téléphone : rien de ces trois étapes (nouvel APK nécessaire), en particulier l'export par le menu de partage d'Android.
+- La page du bilan du lundi n'a été vue qu'à travers ses tests : elle n'apparaît qu'un lundi.
+- L'apprentissage au fil des nuits, dans le pipeline GitHub Actions.

@@ -9,7 +9,6 @@ from arxiv_digest.config import load_config
 from arxiv_digest.fulltext import html_to_text, latex_to_text
 from arxiv_digest.models import Candidate, Paper, Ranked, RankItem
 from arxiv_digest.prefilter import category_score, keyword_score, select_candidates
-from arxiv_digest.profile import update_category_weights
 from arxiv_digest.scoring import score_all, select_edition
 from arxiv_digest.steps import load_prompt
 
@@ -115,17 +114,6 @@ def test_select_edition_relaxes_diversity_when_pool_is_small(cfg):
 
 
 # ---------- profil ----------
-
-
-def test_profile_update_moves_then_decays_and_clamps():
-    w = update_category_weights({"quant-ph": 1.0, "hep-th": 1.5, "gr-qc": 2.0}, [("quant-ph", "interesting"), ("gr-qc", "saved"), ("nucl-th", "saved")])
-    assert w["quant-ph"] == pytest.approx(1.05 - 0.05 * 0.02)
-    assert w["hep-th"] == pytest.approx(1.49)  # sans feedback : retour vers 1.0
-    assert w["gr-qc"] == 2.0  # plafonné
-    assert "nucl-th" not in w
-
-
-# ---------- texte complet ----------
 
 
 def test_html_to_text_keeps_math_as_latex_and_drops_bibliography():

@@ -74,8 +74,11 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 | `20261113000000_init.sql` | 13 novembre 2026 |
 | `20261114000000_notifications.sql` | 13 novembre 2026 |
 | `20261115000000_figures.sql` (table `paper_figures`, compartiment privé `figures`) | 14 novembre 2026 |
+| `20261116000000_notebook.sql` (carnet) | 15 novembre 2026 |
+| `20261116000100_stats.sql` (vue `reading_log`, `get_stats`, `last_week_summary`) | 15 novembre 2026 |
+| `20261116000200_profile.sql` (profil appris, durée d'affichage des cartes) | 15 novembre 2026 |
 
-La fonction `open-paper` déployée compte trois fichiers : `index.ts`, `citations.ts`, `figures.ts` (redéployée le 14 novembre 2026 avec le choix des figures). Les fichiers de `supabase/v2_pending/` ne sont **pas** appliqués.
+La fonction `open-paper` déployée compte trois fichiers : `index.ts`, `citations.ts`, `figures.ts` (redéployée le 14 novembre 2026 avec le choix des figures). Les fichiers restants de `supabase/v2_pending/` (concepts et questions, « Demander à l'article ») ne sont **pas** appliqués.
 
 ## Deux réglages de la fonction à faire à la main
 

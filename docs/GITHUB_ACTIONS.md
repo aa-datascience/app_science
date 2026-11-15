@@ -5,7 +5,7 @@ Trois workflows, dans `.github/workflows/` :
 | Workflow | Quand | Ce qu'il fait |
 | --- | --- | --- |
 | `nightly.yml` | 04:20 et 05:20 UTC, chaque jour | Construit l'édition (classement + cartes) et l'écrit dans Supabase |
-| `notify.yml` | 05:35, 06:35, 18:05 et 19:05 UTC | Envoie la notification du matin ou le rappel du soir si elle est due |
+| `notify.yml` | toutes les heures de 04:35 à 08:35 UTC et de 15:05 à 20:05 UTC | Envoie la notification du matin ou le rappel du soir si elle est due |
 | `tests.yml` | À chaque push | Lance les tests ; aucun secret, aucune dépense |
 
 ## Secrets à ajouter une fois
@@ -35,7 +35,7 @@ Pour lancer une édition à la main : onglet **Actions → Édition de nuit → 
 
 Une le matin (« Today's edition is ready — 8 papers »), un rappel le soir seulement si l'édition n'est pas terminée, et rien d'autre. Chaque envoi est noté dans `editions.morning_notified_at` / `evening_notified_at`, donc jamais répété.
 
-- Heures par défaut : 7 h 30 et 20 h, Europe/Zurich ; réglables dans `profile.settings` (`morning_time`, `evening_time`, `timezone`). GitHub ne connaissant que l'heure UTC, chaque notification a deux créneaux (été et hiver) et une heure réglée est arrondie au créneau suivant.
+- Heures par défaut : 7 h 30 et 20 h, Europe/Zurich ; réglables dans `profile.settings` (`morning_time`, `evening_time`, `timezone`). Elles se règlent dans l'écran Profil de l'app (matin : 6 h à 10 h ; soir : 17 h à 22 h). GitHub ne connaissant que l'heure UTC, un créneau par heure couvre ces plages été comme hiver : une notification part au premier créneau après l'heure réglée, donc jusqu'à une heure plus tard. Cela fait 11 lancements par jour, d'une minute facturée chacun (environ 330 minutes par mois sur les 2 000 gratuites d'un dépôt privé).
 - L'envoi passe par le service de push d'Expo, vers `profile.push_token`. **Tant que l'app n'a pas enregistré ce jeton, rien n'est envoyé** : la commande le dit et s'arrête.
 - Essai sans envoi : `.venv/Scripts/python -m arxiv_digest notify morning --dry-run`.
 

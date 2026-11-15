@@ -1,5 +1,7 @@
-// Réglages. V1 : le compte et les notifications. Le profil et les autres réglages viendront avec la V2.
+// Réglages : le compte, l'état des notifications, et l'entrée vers le profil (poids appris,
+// nombre d'articles, heures des notifications, catégories suivies).
 
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,9 +43,13 @@ export default function Settings() {
             <Button label="Turn on notifications" kind="quiet" onPress={() => registerPush(true).then(setPush)} />
           )}
         </View>
-        <Text style={styles.muted}>
-          Papers per edition, followed categories and notification times will be adjustable here.
-        </Text>
+        <View style={{ gap: space.sm }}>
+          <Label>Profile</Label>
+          <Text style={styles.muted}>
+            What the app has learned from your feedback, papers per edition, followed categories and notification times.
+          </Text>
+          <Button label="Open profile" kind="quiet" onPress={() => router.push("/profile")} />
+        </View>
         <Button label="Sign out" kind="quiet" onPress={() => supabase.auth.signOut()} />
       </View>
     </SafeAreaView>

@@ -29,7 +29,8 @@
       "expo-router",
       "expo-web-browser",
       "expo-image",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "scheme": "arxivdigest",
     "backgroundColor": "#0e0f11",

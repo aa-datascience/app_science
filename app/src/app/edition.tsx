@@ -1,9 +1,10 @@
 // Les cartes de l'édition : une carte par écran, glissement horizontal, progression toujours visible,
-// puis l'écran de fin.
+// puis l'écran de fin. Le lundi, le bilan de la semaine passée précède la première carte.
 
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AppState,
   FlatList,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -19,21 +20,32 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { EndOfEdition } from "../components/EndOfEdition";
 import { FigureImage, FigureViewer } from "../components/Figure";
 import { Label, MathText, Tags, Toggle } from "../components/ui";
-import { figuresFor } from "../lib/logic";
+import { figuresFor, percent, shortDate } from "../lib/logic";
 import { useApp } from "../lib/session";
 import { colors, serif, space } from "../lib/theme";
-import type { EditionCard, FeedbackType, FigureImage as Img, PaperFigure } from "../lib/types";
+import type { EditionCard, FeedbackType, FigureImage as Img, PaperFigure, WeekSummary } from "../lib/types";
 
-type Page = { key: string; card: EditionCard | null }; // card null = écran de fin
+type Page = { key: string; card: EditionCard | null }; // card null = bilan du lundi (clé « summary ») ou écran de fin
+const MIN_VIEW_MS = 300; // en dessous, la carte n'a fait que défiler
+const MAX_VIEW_MS = 10 * 60 * 1000;
 
 export default function Edition() {
-  const { cards, figures, state, shown, feedback, complete } = useApp();
+  const { cards, figures, state, summary, shown, viewed, feedback, complete } = useApp();
   const [viewing, setViewing] = useState<Img | null>(null);
   const { width } = useWindowDimensions();
   const list = useRef<FlatList<Page>>(null);
-  const start = state.completed ? 0 : Math.min(state.index, Math.max(0, cards.length - 1));
-  const [index, setIndex] = useState(start);
-  const pages: Page[] = [...cards.map((card) => ({ key: card.arxiv_id, card })), { key: "end", card: null }];
+  // Le bilan est figé à l'ouverture de l'écran : une page qui apparaîtrait en cours de lecture décalerait tout.
+  const [lead] = useState<WeekSummary | null>(summary);
+  const offset = lead ? 1 : 0;
+  const fresh = !state.completed && state.shown.length === 0;
+  const start = fresh ? 0 : offset + (state.completed ? 0 : Math.min(state.index, Math.max(0, cards.length - 1)));
+  const [page, setPage] = useState(start);
+  const index = page - offset; // position dans les cartes : -1 sur le bilan, cards.length sur l'écran de fin
+  const pages: Page[] = [
+    ...(lead ? [{ key: "summary", card: null }] : []),
+    ...cards.map((card) => ({ key: card.arxiv_id, card })),
+    { key: "end", card: null },
+  ];
 
   // Une carte est « montrée » quand elle est à l'écran ; l'écran de fin termine l'édition.
   useEffect(() => {
@@ -42,15 +54,40 @@ export default function Edition() {
     else if (cards.length && index === cards.length) complete();
   }, [index, cards, shown, complete]);
 
+  // Temps passé sur chaque carte, envoyé quand elle quitte l'écran : une carte passée en moins de
+  // deux secondes ne compte pas comme « ignorée » dans le profil appris.
+  const currentId = cards[index]?.arxiv_id ?? null;
+  const dwell = useRef<{ id: string | null; since: number | null }>({ id: null, since: null });
+  const flushDwell = useCallback(() => {
+    const d = dwell.current;
+    if (d.id && d.since) {
+      const ms = Date.now() - d.since;
+      if (ms >= MIN_VIEW_MS) viewed(d.id, Math.min(ms, MAX_VIEW_MS));
+    }
+    d.since = null;
+  }, [viewed]);
+  useEffect(() => {
+    dwell.current = { id: currentId, since: currentId ? Date.now() : null };
+    return flushDwell;
+  }, [currentId, flushDwell]);
+  useEffect(() => {
+    // L'app en arrière-plan ne compte pas comme du temps de lecture.
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") dwell.current.since = dwell.current.id ? Date.now() : null;
+      else flushDwell();
+    });
+    return () => sub.remove();
+  }, [flushDwell]);
+
   const onScrollEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width)),
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => setPage(Math.round(e.nativeEvent.contentOffset.x / width)),
     [width],
   );
 
   const go = (i: number) => {
     const next = Math.max(0, Math.min(pages.length - 1, i));
     list.current?.scrollToOffset({ offset: next * width, animated: true });
-    setIndex(next);
+    setPage(next);
   };
 
   if (!cards.length) return <SafeAreaView style={styles.wrap} />;
@@ -62,10 +99,10 @@ export default function Edition() {
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
           <Text style={styles.close}>Close</Text>
         </Pressable>
-        <Text style={styles.count}>{onEnd ? "" : `${index + 1}/${cards.length}`}</Text>
+        <Text style={styles.count}>{onEnd ? "" : index < 0 ? "Last week" : `${index + 1}/${cards.length}`}</Text>
       </View>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${(Math.min(index + 1, cards.length) / cards.length) * 100}%` }]} />
+        <View style={[styles.fill, { width: `${(Math.max(0, Math.min(index + 1, cards.length)) / cards.length) * 100}%` }]} />
       </View>
 
       <FlatList
@@ -90,6 +127,8 @@ export default function Edition() {
                 given={state.feedback[item.card.arxiv_id] ?? []}
                 onFeedback={(t) => feedback(item.card!.arxiv_id, t)}
               />
+            ) : item.key === "summary" && lead ? (
+              <WeekSummaryPage summary={lead} />
             ) : (
               <EndOfEdition cards={cards} state={state} />
             )}
@@ -100,20 +139,49 @@ export default function Edition() {
       <FigureViewer image={viewing} onClose={() => setViewing(null)} />
 
       <View style={styles.nav}>
-        <Pressable onPress={() => go(index - 1)} disabled={index === 0} hitSlop={12} accessibilityRole="button">
-          <Text style={[styles.navLabel, index === 0 && { opacity: 0 }]}>‹ Back</Text>
+        <Pressable onPress={() => go(page - 1)} disabled={page === 0} hitSlop={12} accessibilityRole="button">
+          <Text style={[styles.navLabel, page === 0 && { opacity: 0 }]}>‹ Back</Text>
         </Pressable>
         {onEnd ? (
           <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
             <Text style={styles.navLabel}>Done</Text>
           </Pressable>
         ) : (
-          <Pressable onPress={() => go(index + 1)} hitSlop={12} accessibilityRole="button">
-            <Text style={styles.navLabel}>{index === cards.length - 1 ? "Finish ›" : "Next ›"}</Text>
+          <Pressable onPress={() => go(page + 1)} hitSlop={12} accessibilityRole="button">
+            <Text style={styles.navLabel}>{index < 0 ? "Start ›" : index === cards.length - 1 ? "Finish ›" : "Next ›"}</Text>
           </Pressable>
         )}
       </View>
     </SafeAreaView>
+  );
+}
+
+/** Bilan de la semaine passée, en tête de l'édition du lundi. Des faits, pas de félicitations. */
+function WeekSummaryPage({ summary: s }: { summary: WeekSummary }) {
+  const rows: [string | number, string][] = [
+    [s.read, "read"],
+    [s.skipped, "skipped"],
+    [s.saved, "saved"],
+    [`${s.editions_completed}/7`, "editions finished"],
+  ];
+  return (
+    <ScrollView contentContainerStyle={styles.card}>
+      <Text style={styles.badge}>Week of {shortDate(s.week)}</Text>
+      <Text style={styles.summaryTitle}>Last week</Text>
+      <View style={styles.summaryRows}>
+        {rows.map(([n, label]) => (
+          <View key={label} style={styles.summaryRow}>
+            <Text style={styles.summaryN}>{n}</Text>
+            <Text style={styles.why}>{label}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.why}>
+        You opened {percent(s.shown ? s.read / s.shown : null)} of the {s.shown} papers shown.
+        {s.most_read_category ? ` Most read: ${s.most_read_category}.` : ""}
+        {s.most_skipped_category ? ` Most skipped: ${s.most_skipped_category}.` : ""}
+      </Text>
+    </ScrollView>
   );
 }
 
@@ -183,4 +251,8 @@ const styles = StyleSheet.create({
   feedback: { flexDirection: "row", flexWrap: "wrap", gap: space.xs, paddingTop: space.md },
   nav: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: space.lg, paddingVertical: space.md },
   navLabel: { color: colors.muted, fontSize: 15 },
+  summaryTitle: { ...serif, color: colors.text, fontSize: 34, lineHeight: 42 },
+  summaryRows: { gap: space.sm, paddingVertical: space.md },
+  summaryRow: { flexDirection: "row", alignItems: "baseline", gap: space.md },
+  summaryN: { ...serif, color: colors.text, fontSize: 26, minWidth: 56, fontVariant: ["tabular-nums"] },
 });

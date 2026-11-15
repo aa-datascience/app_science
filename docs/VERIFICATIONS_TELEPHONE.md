@@ -59,3 +59,35 @@ Je les déclenche à la main pour l'essai ; dites-moi quand vous êtes prêt.
 - [ ] Taille du texte, marges, lisibilité en mode sombre.
 - [ ] Boutons de feedback faciles à toucher.
 - [ ] Rien qui ressemble à une incitation à continuer après l'écran de fin.
+
+# Vérifications sur le téléphone — APK n° 4 (V2 : carnet, stats, profil)
+
+Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/d9c230f5-dd61-40f7-94a3-8b1ad3f30273
+
+## 7. Carnet
+
+- [ ] La barre du bas montre quatre onglets : Today, Notebook, Stats, Settings.
+- [ ] Notebook liste les articles déjà sauvegardés.
+- [ ] Save sur une carte : l'article apparaît dans Notebook ; un second appui sur Save l'en retire.
+- [ ] Fiche d'un article : écrire une note et des tags, « Save note and tags », revenir : ils sont dans la liste.
+- [ ] La recherche trouve un mot de la note, du titre ou un auteur ; un appui sur un tag filtre la liste.
+- [ ] « Read the explanation » ouvre la vue profondeur d'un article d'une ancienne édition, avec son titre.
+- [ ] Export Markdown, puis BibTeX : le menu de partage d'Android s'ouvre, et le fichier reçu est lisible.
+- [ ] « Remove from notebook » (deux appuis) retire l'article ; sur la carte du jour, Save n'est plus actif.
+- [ ] En mode avion : la liste s'affiche, avec la mention hors ligne.
+
+## 8. Stats
+
+- [ ] Le tableau par semaine et les barres par sous-catégorie s'affichent ; 4, 8 et 12 semaines changent la période.
+- [ ] Les chiffres de la semaine correspondent à ce qui a été lu.
+- [ ] Lundi : une page « Last week » précède la première carte ; « Start › » mène à la carte 1/N.
+
+## 9. Profil
+
+- [ ] Settings → « Open profile » : poids des catégories et des mots-clés, avec la raison du dernier changement.
+- [ ] Changer le nombre d'articles, « Save changes » : l'édition du lendemain a ce nombre d'articles.
+- [ ] Changer l'heure du matin : la notification du lendemain arrive dans l'heure qui suit l'heure choisie.
+- [ ] Verrouiller un poids, enregistrer, rouvrir l'écran : il est toujours « Locked ».
+- [ ] Suivre une catégorie de plus, enregistrer : elle apparaît dans la liste.
+- [ ] Le lendemain d'un « Interesting » ou d'un Save : le poids de la catégorie a monté, avec sa raison.
+- [ ] En mode avion : l'écran s'affiche, et l'enregistrement dit qu'il a échoué.

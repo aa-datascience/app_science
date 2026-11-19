@@ -19,6 +19,7 @@ import type {
   Stats,
   WeekSummary,
   Weight,
+  WidgetDay,
 } from "./types";
 
 const K = {
@@ -31,6 +32,7 @@ const K = {
   stats: (weeks: number) => `stats:${weeks}`,
   summary: (date: string) => `summary:${date}`,
   profile: "profile",
+  widget: "widget:days",
 };
 
 async function read<T>(key: string): Promise<T | null> {
@@ -292,4 +294,25 @@ export async function saveProfile(
     if (error) return error.message;
   }
   return null;
+}
+
+// ---------- widget d'écran d'accueil ----------
+
+/** Les 30 dernières éditions : taille, articles lus (vue profondeur ouverte), faite ou non.
+ * Faite : terminée (écran de fin atteint) ou toutes ses cartes vues. */
+export async function loadWidgetDays(): Promise<WidgetDay[]> {
+  const eds = await supabase.from("editions").select("date,completed_at").order("date", { ascending: false }).limit(30);
+  const dates = (eds.data ?? []).map((e) => e.date as string);
+  if (!eds.error && dates.length) {
+    const log = await supabase.from("reading_log").select("edition_date,read,shown").gte("edition_date", dates[dates.length - 1]);
+    if (!log.error && log.data) {
+      const days = (eds.data ?? []).map((e) => {
+        const rows = log.data.filter((r) => r.edition_date === e.date);
+        return { date: e.date as string, size: rows.length, read: rows.filter((r) => r.read).length, done: Boolean(e.completed_at) || (rows.length > 0 && rows.every((r) => r.shown)) };
+      });
+      await write(K.widget, days);
+      return days;
+    }
+  }
+  return (await read<WidgetDay[]>(K.widget)) ?? [];
 }

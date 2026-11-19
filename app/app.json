@@ -30,7 +30,25 @@
       "expo-web-browser",
       "expo-image",
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "Streak",
+              "label": "Reading streak",
+              "description": "Your streak of finished editions and papers read each day",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 3600000
+            }
+          ]
+        }
+      ]
     ],
     "scheme": "arxivdigest",
     "backgroundColor": "#0e0f11",

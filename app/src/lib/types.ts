@@ -150,3 +150,11 @@ export type ProfileChange = {
 export type AppSettings = { edition_size?: number; morning_time?: string; evening_time?: string; timezone?: string };
 
 export type ProfileData = { settings: AppSettings; weights: Weight[]; levels: Level[]; changes: ProfileChange[] };
+
+/** Widget d'écran d'accueil : une édition, avec ce qui en a été lu. */
+export type WidgetDay = { date: string; size: number; read: number; done: boolean };
+export type WidgetData = {
+  streak: number; // éditions terminées d'affilée, sans compter celle du jour si elle est en cours
+  today: WidgetDay | null; // dernière édition parue
+  days: WidgetDay[]; // 7 dernières éditions, de la plus ancienne à la plus récente
+};

@@ -8,6 +8,7 @@ import { enqueue, flushOutbox, loadEdition, loadFigures, loadState, loadWeekSumm
 import { emptyState, isMonday, markOpened, markShown, stateFor, summaryFor, toggleFeedback } from "./logic";
 import { configureForeground, registerPush } from "./notifications";
 import { supabase } from "./supabase";
+import { updateWidget } from "../widget";
 import type { EditionCard, FeedbackType, PaperFigure, ReadingState, WeekSummary } from "./types";
 
 type Ctx = {
@@ -22,7 +23,7 @@ type Ctx = {
   refresh: () => Promise<void>;
   summary: WeekSummary | null; // bilan de la semaine passée, le lundi seulement
   shown: (id: string, index: number) => void;
-  viewed: (id: string, ms: number) => void; // temps passé sur une carte, envoyé quand elle quitte l'écran
+  viewed: (id: string, ms: number, date: string) => void; // temps passé sur une carte de l'édition `date`
   opened: (id: string) => void;
   feedback: (id: string, type: FeedbackType) => void;
   unsave: (id: string) => void; // retirer du carnet annule le Save
@@ -71,13 +72,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = stateFor(date, await loadState());
     // Une édition terminée sur un autre appareil l'est aussi ici.
     const completed = saved.completed || Boolean(result.cards[0]?.completed_at);
+    const weekSummary = async () => (date && isMonday(date) ? summaryFor(date, await loadWeekSummary(date)) : null);
+    // Nouvelle édition : le bilan du lundi est lu avant de l'afficher, pour qu'un écran de cartes
+    // ouvert reparte de zéro avec le bon bilan (et pas celui de la veille).
+    const newEdition = date !== stateRef.current.date;
+    if (newEdition) setSummary(await weekSummary());
     setCards(result.cards);
     cardIds.current = result.cards.map((c) => c.arxiv_id);
     setFromCache(result.fromCache);
     update({ ...saved, completed });
     setLoading(false);
     void flushOutbox();
-    setSummary(date && isMonday(date) ? summaryFor(date, await loadWeekSummary(date)) : null);
+    if (!newEdition) setSummary(await weekSummary());
     setFigures(await loadFigures(result.cards.map((c) => c.arxiv_id)));
   }, [update]);
 
@@ -109,6 +115,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void registerPush(true);
   }, [userId]);
 
+  // Widget d'écran d'accueil : redessiné quand la lecture avance (édition lue ou terminée, nouvelle édition).
+  useEffect(() => {
+    if (userId && state.date) void updateWidget(stateRef.current);
+  }, [userId, state.date, state.opened.length, state.completed]);
+
   const now = () => new Date().toISOString();
 
   const shown = useCallback(
@@ -121,10 +132,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [update],
   );
 
-  const viewed = useCallback((id: string, ms: number) => {
-    const s = stateRef.current;
-    if (!s.date) return;
-    const row = { paper_id: id, edition_date: s.date, event: "viewed", duration_ms: Math.round(ms), created_at: now() };
+  const viewed = useCallback((id: string, ms: number, date: string) => {
+    // La date vient de l'écran : à l'arrivée d'une nouvelle édition, le temps de la dernière carte
+    // de la veille est envoyé après le changement d'édition.
+    if (!date) return;
+    const row = { paper_id: id, edition_date: date, event: "viewed", duration_ms: Math.round(ms), created_at: now() };
     void enqueue({ kind: "event", row });
   }, []);
 

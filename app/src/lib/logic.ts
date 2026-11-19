@@ -12,6 +12,8 @@ import type {
   ReadingState,
   WeekSummary,
   Weight,
+  WidgetData,
+  WidgetDay,
 } from "./types.ts";
 
 export const MINUTES_PER_PAPER = 3;
@@ -355,3 +357,29 @@ export const DEFAULT_SETTINGS: Required<AppSettings> = {
   evening_time: "20:00",
   timezone: "Europe/Zurich",
 };
+
+// ---------- widget d'écran d'accueil ----------
+
+/** Série et lectures récentes. `days` : une ligne par édition, dans n'importe quel ordre.
+ * Une édition est faite si elle est terminée ou si toutes ses cartes ont été vues.
+ * La dernière édition parue, pas encore faite, ne casse pas la série : elle est « en cours ».
+ * L'état local (`local`) complète la base : il est à jour avant que la file d'envoi soit vidée. */
+export function widgetData(days: WidgetDay[], local?: ReadingState | null): WidgetData {
+  const sorted = [...days].sort((a, b) => b.date.localeCompare(a.date)).map((d) => {
+    if (!local || local.date !== d.date) return d;
+    const allSeen = d.size > 0 && local.shown.length >= d.size;
+    return { ...d, read: Math.max(d.read, local.opened.length), done: d.done || local.completed || allSeen };
+  });
+  const today = sorted[0] ?? null;
+  let streak = 0;
+  for (const [i, d] of sorted.entries()) {
+    if (d.done) streak += 1;
+    else if (i > 0) break;
+  }
+  return { streak, today, days: sorted.slice(0, 7).reverse() };
+}
+
+/** Initiale du jour de la semaine d'une date AAAA-MM-JJ (en anglais, comme l'app). */
+export function weekdayInitial(iso: string): string {
+  return "SMTWTFS"[new Date(`${iso}T12:00:00Z`).getUTCDay()];
+}

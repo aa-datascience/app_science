@@ -91,3 +91,12 @@ Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/d9
 - [ ] Suivre une catégorie de plus, enregistrer : elle apparaît dans la liste.
 - [ ] Le lendemain d'un « Interesting » ou d'un Save : le poids de la catégorie a monté, avec sa raison.
 - [ ] En mode avion : l'écran s'affiche, et l'enregistrement dit qu'il a échoué.
+
+## 10. APK n° 6 : nouvelle édition et widget
+
+- [ ] Laisser l'app ouverte sur une carte (par exemple la 3e), la rouvrir le lendemain : l'édition du jour commence à la première carte (ou à « Last week » le lundi).
+- [ ] Appui long sur l'écran d'accueil → Widgets → arXiv Digest → « Reading streak » : le widget se pose et affiche la série, l'état du jour et une barre par jour.
+- [ ] Ouvrir un article, revenir à l'écran d'accueil : le chiffre du jour a augmenté.
+- [ ] Voir toutes les cartes du jour : l'initiale du jour passe en doré et la série augmente de 1.
+- [ ] Le lendemain, sans ouvrir l'app : le widget montre la nouvelle édition « waiting » (mise à jour au plus une heure après son arrivée).
+- [ ] Toucher le widget ouvre l'app.

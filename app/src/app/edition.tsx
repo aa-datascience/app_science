@@ -29,7 +29,14 @@ type Page = { key: string; card: EditionCard | null }; // card null = bilan du l
 const MIN_VIEW_MS = 300; // en dessous, la carte n'a fait que défiler
 const MAX_VIEW_MS = 10 * 60 * 1000;
 
+// Une nouvelle édition arrivée pendant que l'écran est ouvert (app laissée sur une carte la veille,
+// puis rouverte) remonte l'écran : il repart de la première carte, avec le bilan du jour.
 export default function Edition() {
+  const { cards } = useApp();
+  return <EditionPages key={cards[0]?.date ?? ""} />;
+}
+
+function EditionPages() {
   const { cards, figures, state, summary, shown, viewed, feedback, complete } = useApp();
   const [viewing, setViewing] = useState<Img | null>(null);
   const { width } = useWindowDimensions();
@@ -57,19 +64,20 @@ export default function Edition() {
   // Temps passé sur chaque carte, envoyé quand elle quitte l'écran : une carte passée en moins de
   // deux secondes ne compte pas comme « ignorée » dans le profil appris.
   const currentId = cards[index]?.arxiv_id ?? null;
-  const dwell = useRef<{ id: string | null; since: number | null }>({ id: null, since: null });
+  const date = cards[0]?.date ?? "";
+  const dwell = useRef<{ id: string | null; date: string; since: number | null }>({ id: null, date, since: null });
   const flushDwell = useCallback(() => {
     const d = dwell.current;
     if (d.id && d.since) {
       const ms = Date.now() - d.since;
-      if (ms >= MIN_VIEW_MS) viewed(d.id, Math.min(ms, MAX_VIEW_MS));
+      if (ms >= MIN_VIEW_MS) viewed(d.id, Math.min(ms, MAX_VIEW_MS), d.date);
     }
     d.since = null;
   }, [viewed]);
   useEffect(() => {
-    dwell.current = { id: currentId, since: currentId ? Date.now() : null };
+    dwell.current = { id: currentId, date, since: currentId ? Date.now() : null };
     return flushDwell;
-  }, [currentId, flushDwell]);
+  }, [currentId, date, flushDwell]);
   useEffect(() => {
     // L'app en arrière-plan ne compte pas comme du temps de lecture.
     const sub = AppState.addEventListener("change", (next) => {

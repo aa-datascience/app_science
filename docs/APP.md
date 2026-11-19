@@ -43,6 +43,7 @@ npx eas-cli@latest build --platform android --profile preview
 | Notebook (V2) | `src/app/(tabs)/notebook.tsx`, `src/app/notebook/[id].tsx` | Articles sauvegardés, recherche, tags, note, export Markdown et BibTeX |
 | Stats (V2) | `src/app/(tabs)/stats.tsx` | Lecture par semaine et par sous-catégorie, sur 4, 8 ou 12 semaines |
 | Profil (V2) | `src/app/profile.tsx` | Poids appris, niveaux, catégories suivies, nombre d'articles, heures des notifications |
+| Widget (Android) | `src/widget/` | Série d'éditions faites (terminées, ou toutes les cartes vues) et articles lus sur les 7 dernières éditions ; rafraîchi par l'app et toutes les heures en arrière-plan. Enregistré dans `index.ts` (point d'entrée), déclaré dans `app.json` (`react-native-android-widget`) |
 
 - **Données** (`src/lib/data.ts`) : réseau d'abord, cache du téléphone en secours. Le détail d'un article vient du cache, sinon de la table `details`, sinon de l'Edge Function `open-paper` (première ouverture).
 - **Écritures** : feedback, événements de lecture (`shown`, `opened`, `edition_completed`) et fin d'édition passent par une file d'attente gardée sur le téléphone, envoyée dès que le réseau répond.

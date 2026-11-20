@@ -118,3 +118,10 @@ Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/84
 - [ ] Onglet Concepts : la liste et la recherche ; « Merge a duplicate » sur une fiche (seulement si un vrai doublon existe).
 - [ ] Stats : section « Learning » (questions réussies, nouveaux concepts) ; écran de fin : ligne « new concepts » les jours où il y en a.
 - [ ] Les questions portent sur la physique de l'article, pas sur des détails sans intérêt (à juger sur trois ou quatre articles).
+
+# Vérifications sur le téléphone — APK n° 8 (retours sur l'APK n° 7)
+
+## 12. Barre d'onglets et vue profondeur
+
+- [ ] Les cinq libellés de la barre du bas (Today, Notebook, Concepts, Stats, Settings) sont entiers, même avec une grande taille de police dans les réglages d'Android.
+- [ ] La vue profondeur n'a plus de section « Sourced claims » ; le badge « Quotes found in the paper » reste en haut.

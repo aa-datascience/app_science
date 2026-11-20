@@ -1,6 +1,7 @@
-// Vue profondeur : explication (bascule Curious / Physicist), contexte, affirmations sourcées,
-// concepts et questions (V2, étape 4), article original. À la première ouverture, le détail est
+// Vue profondeur : explication (bascule Curious / Physicist), contexte, concepts et questions (V2, étape 4), article original. À la première ouverture, le détail est
 // généré : état de chargement. « Regenerate » le refait à la demande (appel payant).
+// Les affirmations sourcées ne sont pas affichées (illisibles, demande d'Antoine du 20 novembre) :
+// elles servent seulement à la vérification des citations, donc au badge « Quotes found ».
 
 import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -157,19 +158,6 @@ export default function Paper() {
             <MathText text={result.detail.detail.context.limitations} size={16} />
           </View>
 
-          <View style={styles.section}>
-            <Label>Sourced claims</Label>
-            {result.detail.detail.claims.map((c, i) => (
-              <View key={i} style={styles.claim}>
-                <MathText text={c.statement} size={16} />
-                <View style={styles.quote}>
-                  <MathText text={c.quote} size={14} style={{ color: colors.muted }} />
-                </View>
-              </View>
-            ))}
-            {!result.detail.detail.claims.length && <Text style={styles.muted}>No claim could be matched to the paper.</Text>}
-          </View>
-
           {learning && learning.concepts.length > 0 && (
             <View style={styles.section}>
               <Label>Concepts</Label>
@@ -226,10 +214,8 @@ const styles = StyleSheet.create({
   badge: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" },
   section: { gap: space.sm, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   switch: { flexDirection: "row", gap: space.xs, marginBottom: space.sm },
-  claim: { gap: space.xs, marginBottom: space.md },
   figure: { gap: space.sm, marginBottom: space.lg },
   figureLabel: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" },
-  quote: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.sm },
   pills: { flexDirection: "row", flexWrap: "wrap", gap: space.xs },
   regenerating: { flexDirection: "row", alignItems: "center", gap: space.sm },
   state: { gap: space.sm, paddingVertical: space.xl },

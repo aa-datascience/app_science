@@ -12,10 +12,14 @@ export default function TabLayout() {
         tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.muted,
+        // Pas d'icônes : libellés seuls. Avec cinq onglets, la place est comptée sur un téléphone :
+        // aucune marge réservée à une icône, taille fixe (indépendante de la police système).
         tabBarIcon: () => null,
         tabBarIconStyle: { display: "none" },
-        tabBarLabelStyle: { fontSize: 13, letterSpacing: 0.2 },
-        tabBarLabelPosition: "beside-icon",
+        tabBarLabelPosition: "below-icon",
+        tabBarAllowFontScaling: false,
+        tabBarLabelStyle: { fontSize: 12, marginLeft: 0, marginTop: 0, paddingHorizontal: 0 },
+        tabBarItemStyle: { paddingHorizontal: 0, justifyContent: "center" },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Today" }} />

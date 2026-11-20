@@ -38,7 +38,7 @@ npx eas-cli@latest build --platform android --profile preview
 | Connexion | `src/app/login.tsx` | E-mail et mot de passe du compte Supabase |
 | Today | `src/app/(tabs)/index.tsx` | Date, nombre d'articles, temps estimé, Start / Continue ; écran de fin si l'édition est terminée |
 | Cartes | `src/app/edition.tsx` | Une carte par écran, glissement horizontal, progression, feedback, puis fin d'édition |
-| Vue profondeur | `src/app/paper/[id].tsx` | État de chargement, explication Curious / Physicist, contexte, affirmations sourcées, lien arXiv |
+| Vue profondeur | `src/app/paper/[id].tsx` | État de chargement, explication Curious / Physicist, figures, contexte, concepts, questions, Regenerate, lien arXiv. Les affirmations sourcées ne sont plus affichées (20 novembre 2026, jugées illisibles) : elles servent seulement au badge « Quotes found in the paper » |
 | Settings | `src/app/(tabs)/settings.tsx` | Compte, état des notifications, entrée vers le profil, déconnexion |
 | Notebook (V2) | `src/app/(tabs)/notebook.tsx`, `src/app/notebook/[id].tsx` | Articles sauvegardés, recherche, tags, note, export Markdown et BibTeX |
 | Stats (V2) | `src/app/(tabs)/stats.tsx` | Lecture par semaine et par sous-catégorie, sur 4, 8 ou 12 semaines |

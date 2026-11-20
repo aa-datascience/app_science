@@ -319,3 +319,22 @@ def test_compare_measures_night_and_open_costs(cfg, tmp_path, monkeypatch, fake_
     for heading in ("## Coût de la nuit", "## Coût par article ouvert", "## Extrapolation mensuelle"):
         assert heading in md
     assert md.count("### Détail — sonnet") == 2 and "citations retrouvées" in md
+
+
+def test_detail_call_passes_the_real_sdk_checks(cfg, tmp_path):
+    """Le vrai SDK refuse un appel non diffusé à grand max_tokens sans délai explicite : on passe par lui."""
+    import anthropic
+    import httpx2 as httpx  # le SDK embarque sa propre version de httpx
+
+    answer = detail_with([GOOD, GOOD, GOOD]).model_dump_json()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={
+            "id": "msg_1", "type": "message", "role": "assistant", "model": cfg.models.generate,
+            "content": [{"type": "text", "text": answer}], "stop_reason": "end_turn", "stop_sequence": None,
+            "usage": {"input_tokens": 1000, "output_tokens": 100},
+        })
+
+    client = anthropic.Anthropic(api_key="test", max_retries=0, http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    stored = generate_detail(make_llm(cfg, tmp_path, client), Article(paper(1), TEXT, "html"), cfg)
+    assert stored.verification_status == "verified"

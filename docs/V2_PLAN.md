@@ -167,7 +167,13 @@ Coût mesuré : 0,0128 $ et 0,0115 $ par article (61 000 à 63 000 jetons d'entr
 
 Corrigé après l'essai : le modèle place souvent la bonne option d'un QCM en premier ; l'app mélange les options, dans un ordre fixe par question (`shuffledOptions`).
 
-Pas encore vérifié : génération par l'Edge Function (le chemin de l'app) ; l'app dans un navigateur et sur le téléphone.
+Vérifié ensuite dans Chrome (app web, compte d'Antoine) : onglet Concepts et fiche (bascule Simple / Expert, concepts liés, articles), QCM (options mélangées, correction, passage cité), réponse courte auto-évaluée, section « Learning » des Stats, réponses arrivées en base ; génération par l'Edge Function d'un troisième article (3 concepts, 3 questions, 0,0115 $ pour 44 000 jetons d'entrée et 14 100 de sortie). Réponses et événements « lu » de l'essai supprimés de la base.
+
+Deux défauts trouvés et corrigés pendant cet essai :
+- avec une limite de 32 000 jetons, le SDK Anthropic refuse un appel non diffusé (« Streaming is required… ») avant tout envoi : un délai explicite est passé à l'appel (600 s dans le pipeline, 140 s dans l'Edge Function, sous sa limite de durée). Test `test_detail_call_passes_the_real_sdk_checks`, qui passe par le vrai SDK ;
+- les règles CORS de `open-paper` n'acceptaient pas les en-têtes de traçage que la version actuelle de supabase-js peut ajouter (sans effet sur le téléphone, qui n'applique pas CORS) : la liste suit celle du SDK et la réponse préalable accepte ce que le navigateur annonce.
+
+Pas encore vérifié : sur le téléphone (APK n° 7).
 
 ### Vérifié (étapes 1 à 3)
 

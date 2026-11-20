@@ -15,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 from .config import Config
 
 log = logging.getLogger(__name__)
+REQUEST_TIMEOUT_S = 600  # délai d'un appel synchrone au modèle
 
 
 class BudgetExceeded(Exception):
@@ -166,7 +167,9 @@ class LLM:
         last: Exception | None = None
         for attempt in range(1, attempts + 1):
             self._check_cap()
-            message = self.client.messages.create(**self._params(req))
+            # Délai explicite : sans lui, le SDK refuse tout appel non diffusé dont max_tokens laisse
+            # prévoir plus de 10 minutes (c'est le cas du détail, plafonné à 32 000 jetons).
+            message = self.client.messages.create(**self._params(req), timeout=REQUEST_TIMEOUT_S)
             self._record(req, message.usage, batch=False)
             try:
                 return self._parse(req, message)

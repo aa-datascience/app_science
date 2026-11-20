@@ -40,10 +40,14 @@ type ServerConfig = {
 };
 
 // En-têtes CORS : inutiles pour l'app Android, nécessaires quand l'app tourne dans un navigateur.
-// L'accès reste contrôlé par la session du propriétaire, pas par l'origine.
+// L'accès reste contrôlé par la session du propriétaire, pas par l'origine. La liste suit celle de
+// `@supabase/supabase-js/cors` (le SDK ajoute parfois des en-têtes de traçage) ; la réponse à la
+// requête préalable accepte en plus ceux que le navigateur annonce.
+const ALLOWED_HEADERS =
+  "authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage, sentry-trace";
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": ALLOWED_HEADERS,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -65,7 +69,12 @@ function render(template: string, values: Record<string, string>): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "OPTIONS") {
+    const asked = req.headers.get("Access-Control-Request-Headers");
+    return new Response("ok", {
+      headers: { ...cors, "Access-Control-Allow-Headers": asked ? `${ALLOWED_HEADERS}, ${asked}` : ALLOWED_HEADERS },
+    });
+  }
   if (req.method !== "POST") return json({ error: "method" }, 405);
 
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -157,6 +166,10 @@ Deno.serve(async (req) => {
         effort: cfg.effort as "low" | "medium" | "high",
         format: { type: "json_schema", schema: cfg.detail_schema },
       },
+    }, {
+      // Délai explicite : sans lui, le SDK refuse un appel non diffusé dont max_tokens laisse prévoir
+      // plus de 10 minutes (32 000 jetons). 140 s : sous la limite de durée d'une Edge Function.
+      timeout: 140_000,
     });
   } catch (e) {
     if (e instanceof Anthropic.APIError) return json({ error: "generation", status: e.status, message: e.message }, 502);

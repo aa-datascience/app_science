@@ -103,6 +103,8 @@ Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/d9
 
 # Vérifications sur le téléphone — APK n° 7 (V2, étape 4 : concepts et questions)
 
+Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/8435d758-71e2-4e32-b4a5-79a0a2ca8a79
+
 ## 11. Concepts et questions
 
 - [ ] La barre du bas montre cinq onglets : Today, Notebook, Concepts, Stats, Settings.

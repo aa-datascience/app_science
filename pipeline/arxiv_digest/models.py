@@ -118,6 +118,27 @@ class FigureNote(BaseModel):
     what_to_look_at: str = Field(description="One sentence telling the reader what to notice in this figure")
 
 
+class ConceptEntry(BaseModel):
+    """Concept prérequis (V2, étape 4) : réutilisation d'une fiche connue, ou nouvelle fiche."""
+
+    id: str = Field(description="Stable id: lowercase words joined by hyphens; an id from the known list to reuse it")
+    name: str = Field(description="Short name of the concept")
+    simple_definition: str = Field(description="1-2 sentences, no formulas; empty when reusing a known concept")
+    expert_definition: str = Field(description="2-4 sentences, LaTeX allowed; empty when reusing a known concept")
+    related: list[str] = Field(description="Ids of up to three closely related concepts, known or in this entry")
+
+
+class Question(BaseModel):
+    """Question de compréhension dont la réponse se trouve dans l'article."""
+
+    kind: Literal["mcq", "short"]
+    prompt: str = Field(description="The question")
+    options: list[str] = Field(description="mcq: three or four options; short: empty")
+    answer: str = Field(description="mcq: exact text of the correct option; short: the answer in one sentence")
+    explanation: str = Field(description="One or two sentences explaining the answer")
+    quote: str = Field(description="Passage copied character for character from the paper, supporting the answer")
+
+
 class Detail(BaseModel):
     """Détail généré à l'ouverture d'un article, à partir du texte complet."""
 
@@ -126,14 +147,17 @@ class Detail(BaseModel):
     context: Context
     claims: list[Claim]
     figures: list[FigureNote] = Field(description="One to three figures that best support the explanation; empty if none is listed")
+    concepts: list[ConceptEntry] = Field(description="One to three prerequisite concepts")
+    questions: list[Question] = Field(description="Two or three comprehension questions answered in the paper")
 
 
 class StoredDetail(BaseModel):
-    """Détail tel qu'il est stocké : généré une fois, jamais régénéré."""
+    """Détail tel qu'il est stocké. Généré une fois ; régénéré seulement à la demande, depuis l'app."""
 
     arxiv_id: str
-    detail: Detail  # ses claims sont celles dont la citation a été retrouvée dans l'article
+    detail: Detail  # ses claims et questions sont celles dont la citation a été retrouvée dans l'article
     removed_claims: list[Claim] = []  # citations introuvables : affirmations retirées
+    removed_questions: list[Question] = []  # citation introuvable ou QCM incohérent : questions retirées
     verification_status: Literal["verified", "unverified"]
     text_source: Literal["html", "latex", "pdf", "abstract"]
     based_on_abstract: bool

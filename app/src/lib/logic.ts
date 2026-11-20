@@ -2,6 +2,8 @@
 
 import type {
   AppSettings,
+  Attempt,
+  ConceptCard,
   EditionCard,
   FeedbackType,
   FigureImage,
@@ -9,6 +11,7 @@ import type {
   NotebookEntry,
   PaperFigure,
   ProfileChange,
+  QuestionRow,
   ReadingState,
   WeekSummary,
   Weight,
@@ -383,3 +386,36 @@ export function widgetData(days: WidgetDay[], local?: ReadingState | null): Widg
 export function weekdayInitial(iso: string): string {
   return "SMTWTFS"[new Date(`${iso}T12:00:00Z`).getUTCDay()];
 }
+
+// ---------- V2, étape 4 : concepts et questions ----------
+
+/** Un QCM est juste si l'option choisie est la bonne réponse (le serveur a ramené la réponse au texte d'une option). */
+export const isRightOption = (q: Pick<QuestionRow, "answer">, option: string) => option === q.answer;
+
+/** Dernière réponse donnée à chaque question, par identifiant. */
+export function lastAttempts(attempts: Attempt[]): Record<number, Attempt> {
+  const out: Record<number, Attempt> = {};
+  for (const a of [...attempts].sort((x, y) => (x.created_at < y.created_at ? -1 : x.created_at > y.created_at ? 1 : 0))) {
+    out[a.question_id] = a;
+  }
+  return out;
+}
+
+/** Fiches concepts qui contiennent tous les mots cherchés (nom, identifiant, définitions), par ordre alphabétique. */
+export function filterConcepts(cards: ConceptCard[], query: string): ConceptCard[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return cards
+    .filter((c) => {
+      const hay = [c.name, c.id, c.simple_definition, c.expert_definition].join(" ").toLowerCase();
+      return words.every((w) => hay.includes(w));
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+}
+
+/** Nom affiché d'un concept lié ; à défaut (fiche fusionnée entre-temps), son identifiant. */
+export function conceptName(cards: Pick<ConceptCard, "id" | "name">[], id: string): string {
+  return cards.find((c) => c.id === id)?.name ?? id;
+}
+
+/** « 3/4 » questions réussies du premier coup, ou « – » si aucune réponse. */
+export const questionsLine = (answered = 0, correct = 0) => (answered ? `${correct}/${answered}` : "–");

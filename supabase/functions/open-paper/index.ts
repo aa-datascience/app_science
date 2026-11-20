@@ -1,14 +1,18 @@
 // Edge Function open-paper : génère le détail d'un article à sa première ouverture dans l'app.
 //
-//   POST /functions/v1/open-paper   { "arxiv_id": "2611.01234" }   (session du propriétaire)
+//   POST /functions/v1/open-paper   { "arxiv_id": "2611.01234", "regenerate"?: true }   (session du propriétaire)
 //   -> 200 { detail: <ligne de la table details>, cached: boolean }
 //   -> 402 { error: "budget" }      plafond mensuel atteint
 //   -> 404 { error: "not_found" }   l'article n'est dans aucune édition
 //   -> 502 { error: "generation" }  le modèle n'a pas rendu de détail exploitable
 //
 // Même logique que `python -m arxiv_digest open` (pipeline/arxiv_digest/cli.py) :
-// détail déjà en base -> renvoyé tel quel, jamais régénéré ; sinon un seul appel au modèle,
-// puis vérification des citations sans modèle, puis stockage.
+// détail déjà en base -> renvoyé tel quel ; sinon un seul appel au modèle, puis vérification
+// des citations sans modèle, puis stockage. `regenerate` (bouton de la vue profondeur, payant)
+// refait le détail d'un article déjà ouvert : ses anciennes questions sont archivées, pas supprimées.
+//
+// V2, étape 4 : le même appel rend aussi 1 à 3 concepts et 2 ou 3 questions, contrôlés par
+// learning.ts (portage de learning.py) et écrits dans leurs tables ; l'app ne les écrit jamais.
 //
 // Modèle, prix, plafond, prompts et schéma de sortie viennent de la table server_config,
 // réécrite chaque nuit par le pipeline à partir de config.yaml et de prompts/.
@@ -18,6 +22,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { checkClaims, type Claim } from "./citations.ts";
 import { figuresForPrompt, validLabels } from "./figures.ts";
+import { checkQuestions, type ConceptEntry, type KnownConcept, knownForPrompt, MAX_KNOWN, type Question, resolveConcepts } from "./learning.ts";
 
 type ServerConfig = {
   detail_model: string;
@@ -31,6 +36,7 @@ type ServerConfig = {
   prompt_version: string;
   source_notes: Record<string, string>;
   detail_schema: Record<string, unknown>;
+  max_known_concepts?: number;
 };
 
 // En-têtes CORS : inutiles pour l'app Android, nécessaires quand l'app tourne dans un navigateur.
@@ -72,14 +78,15 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => null);
   const arxivId = typeof body?.arxiv_id === "string" ? body.arxiv_id : "";
+  const regenerate = body?.regenerate === true;
   if (!arxivId) return json({ error: "arxiv_id" }, 400);
 
   const db = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  // 2. Déjà généré : renvoyé tel quel.
+  // 2. Déjà généré : renvoyé tel quel, sauf régénération demandée.
   const existing = await db.from("details").select("*").eq("paper_id", arxivId).maybeSingle();
   if (existing.error) return json({ error: "database", message: existing.error.message }, 500);
-  if (existing.data) return json({ detail: existing.data, cached: true });
+  if (existing.data && !regenerate) return json({ detail: existing.data, cached: true });
 
   // 3. L'article doit faire partie d'une édition.
   const inEdition = await db.from("edition_items").select("paper_id").eq("paper_id", arxivId).limit(1);
@@ -112,6 +119,11 @@ Deno.serve(async (req) => {
   const figRes = await db.from("paper_figures").select("label, caption, roles").eq("paper_id", arxivId).order("position");
   const figureRows: { label: string; caption: string; roles: string[] }[] = figRes.data ?? [];
 
+  // Concepts déjà connus : le modèle réutilise leurs identifiants (150 au plus, même domaine d'abord).
+  const conceptsRes = await db.from("concepts").select("id, name, primary_category, created_at");
+  const known: KnownConcept[] = conceptsRes.error ? [] : conceptsRes.data ?? [];
+  const learningReady = !conceptsRes.error; // tables de l'étape 4 présentes
+
   // 5. Texte stocké la nuit ; à défaut, le résumé (l'article est alors marqué « basé sur le résumé »).
   const text: string = paper.full_text ?? paper.abstract;
   const source: string = paper.full_text ? paper.text_source : "abstract";
@@ -126,6 +138,7 @@ Deno.serve(async (req) => {
     categories: (paper.categories ?? []).join(", "),
     level: cfg.levels[paper.primary_category] ?? "intermediate",
     figures: figuresForPrompt(figureRows),
+    known_concepts: knownForPrompt(known, paper.primary_category, cfg.max_known_concepts ?? MAX_KNOWN),
   });
 
   // 6. Un seul appel au modèle, sortie contrainte par le schéma du détail.
@@ -159,7 +172,7 @@ Deno.serve(async (req) => {
     batch: false,
     arxiv_id: arxivId,
     mode: textMode,
-    label: "",
+    label: regenerate ? "regenerate" : "",
     input_tokens: message.usage.input_tokens,
     output_tokens: message.usage.output_tokens,
     cost_usd: usd,
@@ -175,6 +188,8 @@ Deno.serve(async (req) => {
     context: Record<string, string>;
     claims: Claim[];
     figures?: { label: string; what_to_look_at: string }[];
+    concepts?: ConceptEntry[];
+    questions?: Partial<Question>[];
   };
   try {
     detail = JSON.parse(block && block.type === "text" ? block.text : "");
@@ -183,8 +198,10 @@ Deno.serve(async (req) => {
   }
   if (!Array.isArray(detail?.claims)) return json({ error: "generation", message: "détail sans affirmations" }, 502);
 
-  // 7. Vérification des citations, sans modèle.
+  // 7. Vérification des citations, sans modèle : affirmations, puis questions.
   const { kept, removed, status } = checkClaims(detail.claims, text);
+  const questions = checkQuestions(Array.isArray(detail.questions) ? detail.questions : [], text);
+  const learned = resolveConcepts(Array.isArray(detail.concepts) ? detail.concepts : [], known.map((c) => c.id));
 
   // Figures : seuls les labels présents dans la liste extraite sont gardés, trois au plus.
   const chosen = detail.figures ?? [];
@@ -192,10 +209,11 @@ Deno.serve(async (req) => {
   const figures = validLabels(chosen.map((f) => f.label), figureRows, 3)
     .map((label) => ({ label, what_to_look_at: notes.get(label) ?? "" }));
 
-  // 8. Stockage. Si deux ouvertures se croisent, la première écrite gagne et c'est elle qu'on renvoie.
+  // 8. Stockage. Concepts et questions vont dans leurs tables, pas dans le JSON du détail.
+  const { concepts: _c, questions: _q, ...rest } = detail;
   const row = {
     paper_id: arxivId,
-    detail: { ...detail, claims: kept, figures },
+    detail: { ...rest, claims: kept, figures, removed_questions: questions.removed },
     removed_claims: removed,
     verification_status: status,
     text_source: source,
@@ -204,15 +222,60 @@ Deno.serve(async (req) => {
     text_mode: textMode,
     model: cfg.detail_model,
     prompt_version: cfg.prompt_version,
+    ...(regenerate ? { created_at: new Date().toISOString() } : {}),
   };
-  const saved = await db.from("details").upsert(row, { onConflict: "paper_id", ignoreDuplicates: true });
+  // Première ouverture : si deux ouvertures se croisent, la première écrite gagne et c'est elle
+  // qu'on renvoie (la seconde n'écrit ni concepts ni questions). Régénération : on remplace.
+  const saved = await db.from("details")
+    .upsert(row, { onConflict: "paper_id", ignoreDuplicates: !regenerate })
+    .select("paper_id");
   if (saved.error) return json({ error: "database", message: saved.error.message }, 500);
-  // Les figures choisies reçoivent le rôle « detail » ; le pipeline les copiera dans le stockage.
-  for (const f of figures) {
-    const current = figureRows.find((r) => r.label === f.label)?.roles ?? [];
-    await db.from("paper_figures")
-      .update({ roles: [...new Set([...current, "detail"])].sort(), what_to_look_at: f.what_to_look_at })
-      .eq("paper_id", arxivId).eq("label", f.label);
+  const won = (saved.data ?? []).length > 0;
+
+  if (won) {
+    // Figures choisies : rôle « detail » ; le pipeline les copiera dans le stockage.
+    // Après une régénération, les figures qui ne sont plus choisies perdent ce rôle.
+    for (const r of figureRows) {
+      const note = figures.find((f) => f.label === r.label);
+      const roles = r.roles.filter((x) => x !== "detail");
+      if (note) roles.push("detail");
+      else if (roles.length === r.roles.length) continue;
+      await db.from("paper_figures")
+        .update(note ? { roles: roles.sort(), what_to_look_at: note.what_to_look_at } : { roles: roles.sort() })
+        .eq("paper_id", arxivId).eq("label", r.label);
+    }
+
+    if (learningReady) {
+      const now = new Date().toISOString();
+      const errors: string[] = [];
+      const step = async (p: PromiseLike<{ error: { message: string } | null }>) => {
+        const { error } = await p;
+        if (error) errors.push(error.message);
+      };
+      // Une fiche existante n'est jamais réécrite : seules les nouvelles sont créées.
+      if (learned.new.length) {
+        await step(db.from("concepts").upsert(
+          learned.new.map((c) => ({ ...c, primary_category: paper.primary_category ?? "", first_paper_id: arxivId })),
+          { onConflict: "id", ignoreDuplicates: true },
+        ));
+      }
+      await step(db.from("paper_concepts").delete().eq("paper_id", arxivId));
+      if (learned.paper.length) {
+        await step(db.from("paper_concepts").upsert(
+          learned.paper.map((id, position) => ({ paper_id: arxivId, concept_id: id, position })),
+          { onConflict: "paper_id,concept_id", ignoreDuplicates: true },
+        ));
+      }
+      if (learned.links.length) {
+        await step(db.from("concept_links").upsert(learned.links.map(([a, b]) => ({ a, b })), { onConflict: "a,b", ignoreDuplicates: true }));
+      }
+      // Les questions précédentes sont archivées avec leurs réponses, jamais supprimées.
+      await step(db.from("questions").update({ archived_at: now }).eq("paper_id", arxivId).is("archived_at", null));
+      if (questions.kept.length) {
+        await step(db.from("questions").insert(questions.kept.map((q, position) => ({ paper_id: arxivId, position, ...q }))));
+      }
+      if (errors.length) console.error("open-paper: concepts et questions", arxivId, errors);
+    }
   }
 
   const stored = await db.from("details").select("*").eq("paper_id", arxivId).single();

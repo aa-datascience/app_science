@@ -100,3 +100,19 @@ Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/d9
 - [ ] Voir toutes les cartes du jour : l'initiale du jour passe en doré et la série augmente de 1.
 - [ ] Le lendemain, sans ouvrir l'app : le widget montre la nouvelle édition « waiting » (mise à jour au plus une heure après son arrivée).
 - [ ] Toucher le widget ouvre l'app.
+
+# Vérifications sur le téléphone — APK n° 7 (V2, étape 4 : concepts et questions)
+
+## 11. Concepts et questions
+
+- [ ] La barre du bas montre cinq onglets : Today, Notebook, Concepts, Stats, Settings.
+- [ ] Ouvrir un article jamais ouvert : après « Preparing this paper… », la vue montre une section Concepts (pastilles) et une section Questions.
+- [ ] Une pastille ouvre la fiche du concept : bascule Simple / Expert, formules mises en forme, articles où il apparaît.
+- [ ] QCM : un appui sur une option affiche « Correct » ou « Not quite », la bonne option encadrée, l'explication et le passage de l'article. Vérifier aussi une option qui contient une formule.
+- [ ] Réponse courte : « Show answer », puis « I had it » ou « I didn't » ; en revenant sur l'article, la réponse est gardée.
+- [ ] « Try again » repose la question.
+- [ ] En mode avion : répondre à une question, couper le mode avion : rien ne plante (je vérifierai que la réponse est arrivée en base).
+- [ ] Un article ouvert avant le 20 novembre : la phrase « written before concepts and questions existed » et le bouton « Regenerate this explanation » ; deux appuis le refont (environ 0,01 $), avec concepts et questions.
+- [ ] Onglet Concepts : la liste et la recherche ; « Merge a duplicate » sur une fiche (seulement si un vrai doublon existe).
+- [ ] Stats : section « Learning » (questions réussies, nouveaux concepts) ; écran de fin : ligne « new concepts » les jours où il y en a.
+- [ ] Les questions portent sur la physique de l'article, pas sur des détails sans intérêt (à juger sur trois ou quatre articles).

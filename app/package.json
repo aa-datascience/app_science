@@ -37,7 +37,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/lib/logic.test.ts src/lib/logic_v2.test.ts src/lib/logic_widget.test.ts"
+    "test": "node --test src/lib/logic.test.ts src/lib/logic_v2.test.ts src/lib/logic_widget.test.ts src/lib/logic_concepts.test.ts"
   },
   "private": true
 }

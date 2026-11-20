@@ -13,8 +13,9 @@ from .citations import check_claims
 from .config import REPO_ROOT, Config
 from .figures import figures_for_prompt, valid_labels
 from .fulltext import select_sections
+from .learning import check_questions
 from .llm import LLM, BatchFailed, LLMInvalid, LLMRefused, Req
-from .models import Candidate, Card, Detail, Figure, Paper, RankBatch, Ranked, StoredDetail
+from .models import Candidate, Card, Detail, Figure, Paper, Question, RankBatch, Ranked, StoredDetail
 
 log = logging.getLogger(__name__)
 PROMPTS = REPO_ROOT / "prompts"
@@ -69,10 +70,21 @@ def _authors(paper: Paper) -> str:
 # ---------- La nuit : classement ----------
 
 
-def rank(llm: LLM, candidates: list[Candidate], cfg: Config) -> list[Ranked]:
+MAX_TASTE_TITLES = 10  # titres aimés et rejetés donnés au classement, de chaque sorte
+
+
+def _titles(titles: list[str]) -> str:
+    return "\n".join(f"- {t}" for t in titles[:MAX_TASTE_TITLES]) or "(none yet)"
+
+
+def rank(
+    llm: LLM, candidates: list[Candidate], cfg: Config, taste: tuple[list[str], list[str]] = ([], [])
+) -> list[Ranked]:
+    """`taste` : titres récemment aimés (interesting, Save) et rejetés (not for me), les plus récents d'abord."""
     system, _ = load_prompt("system")
     template, _ = load_prompt("rank")
     levels = "\n".join(f"- {k}: {v}" for k, v in cfg.profile.levels.items()) or "(none specified)"
+    liked, rejected = _titles(taste[0]), _titles(taste[1])
     by_id = {c.paper.arxiv_id: c for c in candidates}
     ranked: list[Ranked] = []
     size = cfg.models.rank_batch_size
@@ -85,7 +97,9 @@ def rank(llm: LLM, candidates: list[Candidate], cfg: Config) -> list[Ranked]:
             f"abstract: {c.paper.abstract}"
             for c in batch
         )
-        prompt = render(template, interests=cfg.profile.interests.strip(), levels=levels, papers=papers)
+        prompt = render(
+            template, interests=cfg.profile.interests.strip(), levels=levels, liked=liked, rejected=rejected, papers=papers
+        )
         out = llm.run(Req(step="rank", model=cfg.models.rank, system=system, content=prompt, schema=RankBatch))
         got = set()
         for item in out.items:
@@ -185,7 +199,7 @@ def _source_note(art: Article) -> str:
     return note + (SOURCE_NOTES["truncated"] if art.truncated else "")
 
 
-def detail_req(art: Article, cfg: Config, label: str = "") -> tuple[Req, str]:
+def detail_req(art: Article, cfg: Config, label: str = "", known_concepts: str = "(none yet)") -> tuple[Req, str]:
     system, _ = load_prompt("system")
     template, version = load_prompt("detail")
     paper = art.paper
@@ -198,6 +212,7 @@ def detail_req(art: Article, cfg: Config, label: str = "") -> tuple[Req, str]:
         categories=", ".join(paper.categories),
         level=cfg.profile.levels.get(paper.primary_category, "intermediate"),
         figures=figures_for_prompt(art.figures),
+        known_concepts=known_concepts,
     )
     req = Req(
         step="detail",
@@ -210,29 +225,39 @@ def detail_req(art: Article, cfg: Config, label: str = "") -> tuple[Req, str]:
     return req, version
 
 
-def generate_detail(llm: LLM, art: Article, cfg: Config, label: str = "") -> StoredDetail:
+def generate_detail(
+    llm: LLM, art: Article, cfg: Config, label: str = "", known_concepts: str = "(none yet)"
+) -> StoredDetail:
     """Un seul appel au modèle, puis vérification des citations sans modèle.
 
     Les affirmations dont la citation est introuvable dans le texte sont retirées ;
-    au-delà d'un tiers d'échecs, le détail est marqué « unverified ».
+    au-delà d'un tiers d'échecs, le détail est marqué « unverified ». Les questions dont la
+    citation est introuvable sont retirées aussi, sans effet sur ce statut. Les concepts sont
+    résolus à l'écriture, contre ceux déjà en base (`learning.resolve_concepts`).
     """
-    req, version = detail_req(art, cfg, label)
+    req, version = detail_req(art, cfg, label, known_concepts)
     detail = llm.run(req)
     checked, removed, status = check_claims(detail, art.text)
+    questions, removed_questions = check_questions([q.model_dump() for q in checked.questions], art.text)
     # Figures : seuls les labels présents dans la liste extraite sont gardés, trois au plus.
     kept = valid_labels([f.label for f in checked.figures], art.figures, 3)
     notes = {f.label.strip(' []'): f for f in checked.figures}
     checked = checked.model_copy(
-        update={"figures": [notes[k].model_copy(update={"label": k}) for k in kept if k in notes]}
+        update={
+            "figures": [notes[k].model_copy(update={"label": k}) for k in kept if k in notes],
+            "questions": [Question(**q) for q in questions],
+        }
     )
     log.info(
-        "détail %s: %d affirmations, %d retirées -> %s",
+        "détail %s: %d affirmations, %d retirées -> %s ; %d questions, %d retirées ; %d concepts",
         art.paper.arxiv_id, len(detail.claims), len(removed), status,
+        len(detail.questions), len(removed_questions), len(detail.concepts),
     )
     return StoredDetail(
         arxiv_id=art.paper.arxiv_id,
         detail=checked,
         removed_claims=removed,
+        removed_questions=[Question.model_validate(q) for q in removed_questions],
         verification_status=status,
         text_source=art.source,
         based_on_abstract=art.source == "abstract",

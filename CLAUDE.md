@@ -18,12 +18,13 @@
 
 ## Commandes (depuis `pipeline/`)
 
-- Tests : `.venv/Scripts/python -m pytest -q` ; côté Edge Function, depuis la racine : `node --test supabase/functions/open-paper/citations.test.ts supabase/functions/open-paper/figures.test.ts`
+- Tests : `.venv/Scripts/python -m pytest -q` ; côté Edge Function, depuis la racine : `node --test supabase/functions/open-paper/citations.test.ts supabase/functions/open-paper/figures.test.ts supabase/functions/open-paper/learning.test.ts` ; base : `cd supabase/check && node check_schema.mjs && node check_concepts.mjs`
 - Essai gratuit : `.venv/Scripts/python -m arxiv_digest run --no-llm`
 - Édition du jour, cartes seulement (payant) : `.venv/Scripts/python -m arxiv_digest run` ou `run --batch` (API Batches, pipeline de nuit)
 - Ouverture simulée d'un article (payant) : `.venv/Scripts/python -m arxiv_digest open <arxiv_id>`
 - Copie des figures choisies dans le stockage : `.venv/Scripts/python -m arxiv_digest sync-figures`
 - Profil appris : apprendre des feedbacks en attente et afficher les poids (gratuit) : `.venv/Scripts/python -m arxiv_digest profile`
+- Réécrire `server_config` (prompts, schéma) pour l'Edge Function, sans attendre la nuit (gratuit) : `.venv/Scripts/python -m arxiv_digest push-config`
 - Notification du matin ou du soir, sans envoi : `.venv/Scripts/python -m arxiv_digest notify morning --dry-run`
 - Essai de coût et de qualité (payant, plafonné par `--max-usd`) : `.venv/Scripts/python -m arxiv_digest compare` → `comparison/AAAA-MM-JJ.md`
 
@@ -35,7 +36,9 @@
 - La clé API vit dans `.env` uniquement. Ne jamais commiter `.env`, ne jamais mettre de clé dans `.env.example`.
 - Aucun appel réel à l'API Claude dans les tests.
 - Figures : `figures_for_prompt` et `valid_labels` (`figures.py`) et leur portage `figures.ts` doivent rester identiques, avec un cas dans `pipeline/tests/fixtures/figure_cases.json`. Seules les figures choisies sont copiées dans le stockage.
-- V2 : étapes 1 à 3 faites (carnet, stats et bilan du lundi, profil appris). Étapes 4 et 5 (concepts et questions, « Demander à l'article ») : rien n'est codé, migrations non appliquées dans `supabase/v2_pending/` ; ne pas les appliquer ni les coder sans validation explicite. Plan et état dans `docs/V2_PLAN.md`.
+- V2 : étapes 1 à 4 faites (carnet, stats et bilan du lundi, profil appris, concepts et questions). Étape 5 (« Demander à l'article ») : rien n'est codé, migration non appliquée dans `supabase/v2_pending/` ; ne pas l'appliquer ni la coder sans validation explicite. Plan et état dans `docs/V2_PLAN.md`.
+- Concepts et questions : `learning.py` et son portage `supabase/functions/open-paper/learning.ts` doivent rester identiques, avec un cas dans `pipeline/tests/fixtures/learning_cases.json`. Seule l'Edge Function (ou le pipeline, clé de service) écrit concepts et questions ; l'app n'écrit que les réponses et la fusion de deux concepts (`merge_concepts`). Un détail régénéré archive ses questions, il ne les supprime pas.
+- Appliquer une migration au vrai projet : `npx supabase db query --remote=zrktdpmmxistgzrejkrs --yes -f <fichier>` (jamais `db push`).
 - Profil appris : les poids, niveaux et réglages vivent en base (`profile_weights`, `profile_levels`, `profile.settings`) ; `config.yaml` ne sert qu'à les initialiser. Les règles d'apprentissage sont dans `profile.py`, sans modèle.
 - `citations.py` et `supabase/functions/open-paper/citations.ts` doivent rester identiques : toute modification se fait des deux côtés, avec un cas dans `pipeline/tests/fixtures/citation_cases.json`.
 - Sorties des modèles validées par des schémas Pydantic (`models.py`).

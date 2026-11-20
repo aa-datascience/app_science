@@ -77,8 +77,9 @@ Elle n'accepte que la session du propriétaire ; elle sera appelée par l'app (`
 | `20261116000000_notebook.sql` (carnet) | 15 novembre 2026 |
 | `20261116000100_stats.sql` (vue `reading_log`, `get_stats`, `last_week_summary`) | 15 novembre 2026 |
 | `20261116000200_profile.sql` (profil appris, durée d'affichage des cartes) | 15 novembre 2026 |
+| `20261120000000_concepts_questions.sql` (concepts, questions, réponses, `merge_concepts`, `get_stats` enrichi) | 20 novembre 2026, par `npx supabase db query --remote … -f` |
 
-La fonction `open-paper` déployée compte trois fichiers : `index.ts`, `citations.ts`, `figures.ts` (redéployée le 14 novembre 2026 avec le choix des figures). Les fichiers restants de `supabase/v2_pending/` (concepts et questions, « Demander à l'article ») ne sont **pas** appliqués.
+La fonction `open-paper` déployée compte quatre fichiers : `index.ts`, `citations.ts`, `figures.ts`, `learning.ts` (redéployée le 20 novembre 2026 par `npx supabase functions deploy open-paper --project-ref zrktdpmmxistgzrejkrs --use-api`, avec concepts, questions et régénération). Le fichier restant de `supabase/v2_pending/` (« Demander à l'article ») n'est **pas** appliqué.
 
 ## Deux réglages de la fonction à faire à la main
 

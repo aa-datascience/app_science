@@ -7,14 +7,18 @@ import { supabase } from "./supabase";
 import { type FigureDbRow, figureImages, profileDiff } from "./logic";
 import type {
   AppSettings,
+  Attempt,
+  ConceptCard,
   DetailRow,
   EditionCard,
+  Learning,
   Level,
   NotebookEntry,
   OutboxItem,
   PaperFigure,
   ProfileChange,
   ProfileData,
+  QuestionRow,
   ReadingState,
   Stats,
   WeekSummary,
@@ -33,6 +37,8 @@ const K = {
   summary: (date: string) => `summary:${date}`,
   profile: "profile",
   widget: "widget:days",
+  learning: (id: string) => `learning:${id}`,
+  concepts: "concepts",
 };
 
 async function read<T>(key: string): Promise<T | null> {
@@ -118,6 +124,14 @@ export type DetailResult =
 export async function loadDetail(arxivId: string): Promise<DetailResult> {
   const cached = await read<DetailRow>(K.detail(arxivId));
   if (cached) return { ok: true, detail: cached };
+  return generateDetail(arxivId, false);
+}
+
+/** Refait le détail d'un article déjà ouvert (bouton « Regenerate », appel payant). */
+export const regenerateDetail = (arxivId: string) => generateDetail(arxivId, true);
+
+async function generateDetail(arxivId: string, regenerate: boolean): Promise<DetailResult> {
+  if (regenerate) return invokeOpenPaper(arxivId, true);
 
   // Déjà généré (par une ouverture précédente, sur cet appareil ou un autre) : simple lecture en base.
   const stored = await supabase.from("details").select("*").eq("paper_id", arxivId).maybeSingle();
@@ -126,7 +140,12 @@ export async function loadDetail(arxivId: string): Promise<DetailResult> {
     return { ok: true, detail: stored.data as DetailRow };
   }
 
-  const { data, error } = await supabase.functions.invoke("open-paper", { body: { arxiv_id: arxivId } });
+  return invokeOpenPaper(arxivId, false);
+}
+
+async function invokeOpenPaper(arxivId: string, regenerate: boolean): Promise<DetailResult> {
+  const body = regenerate ? { arxiv_id: arxivId, regenerate: true } : { arxiv_id: arxivId };
+  const { data, error } = await supabase.functions.invoke("open-paper", { body });
   if (!error && data?.detail) {
     await write(K.detail(arxivId), data.detail);
     return { ok: true, detail: data.detail as DetailRow };
@@ -158,6 +177,9 @@ async function send(item: OutboxItem): Promise<boolean> {
   }
   if (item.kind === "notebook_remove") {
     return !(await supabase.from("notebook").delete().eq("paper_id", item.paper_id)).error;
+  }
+  if (item.kind === "attempt") {
+    return !(await supabase.from("question_attempts").insert(item.row)).error;
   }
   if (item.kind === "notebook_update") {
     const row = { note: item.note, tags: item.tags, updated_at: item.at };
@@ -315,4 +337,70 @@ export async function loadWidgetDays(): Promise<WidgetDay[]> {
     }
   }
   return (await read<WidgetDay[]>(K.widget)) ?? [];
+}
+
+// ---------- V2, étape 4 : concepts et questions ----------
+
+/**
+ * Concepts et questions d'un article, avec les réponses déjà données. Réseau d'abord, cache en secours.
+ * Les réponses encore dans la file d'attente sont ajoutées à celles lues en base.
+ */
+export async function loadLearning(paperId: string): Promise<Learning | null> {
+  const cached = await read<Learning>(K.learning(paperId));
+  const [pc, qs] = await Promise.all([
+    supabase.from("paper_concepts").select("position, concepts(id, name)").eq("paper_id", paperId).order("position"),
+    supabase.from("questions").select("id,paper_id,position,kind,prompt,options,answer,explanation,quote")
+      .eq("paper_id", paperId).is("archived_at", null).order("position"),
+  ]);
+  if (pc.error || qs.error) return cached;
+  const questions = (qs.data ?? []) as QuestionRow[];
+  const ids = questions.map((q) => q.id);
+  const at = ids.length
+    ? await supabase.from("question_attempts").select("question_id,answer,correct,created_at").in("question_id", ids)
+    : { data: [], error: null };
+  if (at.error) return cached;
+  const pending = ((await read<OutboxItem[]>(K.outbox)) ?? [])
+    .flatMap((i) => (i.kind === "attempt" && ids.includes(i.row.question_id) ? [i.row] : []));
+  const learning: Learning = {
+    concepts: (pc.data ?? []).flatMap((r) => {
+      const c = r.concepts as unknown as { id: string; name: string } | null;
+      return c ? [{ id: c.id, name: c.name }] : [];
+    }),
+    questions,
+    attempts: [...((at.data ?? []) as Attempt[]), ...pending],
+  };
+  await write(K.learning(paperId), learning);
+  return learning;
+}
+
+/** Enregistre une réponse : tout de suite sur le téléphone, en base par la file d'attente. */
+export async function recordAttempt(paperId: string, attempt: Attempt): Promise<void> {
+  const cached = await read<Learning>(K.learning(paperId));
+  if (cached) await write(K.learning(paperId), { ...cached, attempts: [...cached.attempts, attempt] });
+  await enqueue({ kind: "attempt", row: attempt });
+}
+
+/** Toutes les fiches concepts. Réseau d'abord ; hors ligne, la dernière liste vue. */
+export async function loadConcepts(): Promise<{ concepts: ConceptCard[]; fromCache: boolean }> {
+  const { data, error } = await supabase.from("concept_cards").select("*");
+  if (!error && data) {
+    await write(K.concepts, data);
+    return { concepts: data as ConceptCard[], fromCache: false };
+  }
+  return { concepts: (await read<ConceptCard[]>(K.concepts)) ?? [], fromCache: true };
+}
+
+export const cachedConcepts = async () => (await read<ConceptCard[]>(K.concepts)) ?? [];
+
+/** Fusionne `dup` dans `keep` (doublons). Renvoie un message d'erreur, ou null. En ligne seulement. */
+export async function mergeConcepts(dup: string, keep: string): Promise<string | null> {
+  const { error } = await supabase.rpc("merge_concepts", { dup, keep });
+  return error ? error.message : null;
+}
+
+/** Nombre de concepts créés par les articles de cette édition (récapitulatif de fin) ; null hors ligne. */
+export async function countNewConcepts(paperIds: string[]): Promise<number | null> {
+  if (!paperIds.length) return 0;
+  const { count, error } = await supabase.from("concepts").select("id", { count: "exact", head: true }).in("first_paper_id", paperIds);
+  return error ? null : (count ?? 0);
 }

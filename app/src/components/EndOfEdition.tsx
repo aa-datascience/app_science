@@ -1,13 +1,25 @@
 // Fin d'édition : récapitulatif du jour et « à demain ». Aucun contenu supplémentaire proposé.
 
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { countNewConcepts } from "../lib/data";
 import { summarize } from "../lib/logic";
 import { colors, serif, space } from "../lib/theme";
 import type { EditionCard, ReadingState } from "../lib/types";
 
 export function EndOfEdition({ cards, state }: { cards: EditionCard[]; state: ReadingState }) {
   const s = summarize(cards, state);
+  // Concepts créés par les articles de cette édition ; rien n'est affiché hors ligne.
+  const [concepts, setConcepts] = useState<number | null>(null);
+  const ids = cards.map((c) => c.arxiv_id).join(",");
+  useEffect(() => {
+    let alive = true;
+    countNewConcepts(ids ? ids.split(",") : []).then((n) => alive && setConcepts(n));
+    return () => {
+      alive = false;
+    };
+  }, [ids]);
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>That's all for today.</Text>
@@ -15,6 +27,7 @@ export function EndOfEdition({ cards, state }: { cards: EditionCard[]; state: Re
         <Row n={s.read} label="read" />
         <Row n={s.skipped} label="skipped" />
         <Row n={s.saved} label="saved" />
+        {concepts !== null && concepts > 0 && <Row n={concepts} label={concepts === 1 ? "new concept" : "new concepts"} />}
       </View>
       <Text style={styles.bye}>See you tomorrow.</Text>
     </View>

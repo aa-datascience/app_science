@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Label, Toggle } from "../../components/ui";
 import { loadStats } from "../../lib/data";
-import { percent, shortDate } from "../../lib/logic";
+import { percent, questionsLine, shortDate } from "../../lib/logic";
 import { colors, serif, space } from "../../lib/theme";
 import type { Stats as StatsData } from "../../lib/types";
 
@@ -74,6 +74,29 @@ export default function Stats() {
             ))}
             <Text style={styles.muted}>
               Read: you opened the explanation. Skipped: the card was shown and not opened. Done: editions finished that week.
+            </Text>
+          </View>
+        )}
+
+        {rows.length > 0 && (
+          <View style={styles.section}>
+            <Label>Learning</Label>
+            <View style={styles.tr}>
+              <Text style={[styles.th, styles.week]}>Week of</Text>
+              <Text style={styles.th}>Saved</Text>
+              <Text style={styles.th}>Questions</Text>
+              <Text style={styles.th}>New concepts</Text>
+            </View>
+            {rows.map((w) => (
+              <View key={w.week} style={styles.tr}>
+                <Text style={[styles.td, styles.week]}>{shortDate(w.week)}</Text>
+                <Text style={styles.td}>{w.saved}</Text>
+                <Text style={styles.td}>{questionsLine(w.questions_answered, w.questions_correct)}</Text>
+                <Text style={styles.td}>{w.new_concepts ?? 0}</Text>
+              </View>
+            ))}
+            <Text style={styles.muted}>
+              Questions: answered right the first time, out of those answered. New concepts: added by the papers you opened.
             </Text>
           </View>
         )}

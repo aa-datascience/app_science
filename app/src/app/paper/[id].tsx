@@ -1,21 +1,24 @@
 // Vue profondeur : explication (bascule Curious / Physicist), contexte, affirmations sourcées,
-// article original. À la première ouverture, le détail est généré : état de chargement.
+// concepts et questions (V2, étape 4), article original. À la première ouverture, le détail est
+// généré : état de chargement. « Regenerate » le refait à la demande (appel payant).
 
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { FigureImage, FigureViewer } from "../../components/Figure";
+import { QuestionBlock } from "../../components/Questions";
 import { Button, Label, MathText, Toggle } from "../../components/ui";
-import { cachedNotebook, type DetailResult, loadDetail } from "../../lib/data";
-import { figuresFor } from "../../lib/logic";
+import { cachedNotebook, type DetailResult, loadDetail, loadLearning, recordAttempt, regenerateDetail } from "../../lib/data";
+import { figuresFor, lastAttempts } from "../../lib/logic";
 import { useApp } from "../../lib/session";
 import { colors, serif, space } from "../../lib/theme";
-import type { FigureImage as Img } from "../../lib/types";
+import type { FigureImage as Img, Learning } from "../../lib/types";
 
 export default function Paper() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `title` : passé par la fiche d'un concept, pour un article qui n'est ni du jour ni au carnet.
+  const { id, title: titleParam } = useLocalSearchParams<{ id: string; title?: string }>();
   const { cards, figures, refreshFigures, opened } = useApp();
   const [viewing, setViewing] = useState<Img | null>(null);
   const card = cards.find((c) => c.arxiv_id === id);
@@ -29,10 +32,12 @@ export default function Paper() {
     });
   }, [id, card]);
   const plainTitle = card?.card.plain_title ?? saved?.plain;
-  const title = card?.title ?? saved?.title;
+  const title = card?.title ?? saved?.title ?? titleParam;
   const [result, setResult] = useState<DetailResult | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [level, setLevel] = useState<"lay" | "expert">("lay");
+  const [learning, setLearning] = useState<Learning | null>(null);
+  const [regen, setRegen] = useState<"idle" | "confirm" | "running" | string>("idle");
 
   useEffect(() => {
     let alive = true;
@@ -43,6 +48,7 @@ export default function Paper() {
       if (r.ok) {
         opened(id); // « lu » = la vue profondeur a réellement été affichée
         void refreshFigures(id); // le détail vient peut-être de choisir ses figures
+        loadLearning(id).then((l) => alive && setLearning(l));
       }
     });
     return () => {
@@ -51,6 +57,28 @@ export default function Paper() {
   }, [id, attempt, opened, refreshFigures]);
 
   const openOriginal = () => WebBrowser.openBrowserAsync(`https://arxiv.org/abs/${id}`);
+
+  const answer = (questionId: number) => (text: string, correct: boolean | null) => {
+    const attempt = { question_id: questionId, answer: text, correct, created_at: new Date().toISOString() };
+    setLearning((l) => (l ? { ...l, attempts: [...l.attempts, attempt] } : l));
+    void recordAttempt(id, attempt);
+  };
+
+  const regenerate = async () => {
+    if (regen !== "confirm") return setRegen("confirm");
+    setRegen("running");
+    const r = await regenerateDetail(id);
+    if (!r.ok) {
+      setRegen(r.reason === "budget" ? "This month's budget is used up." : r.reason === "offline" ? "You seem to be offline." : "Regeneration failed.");
+      return;
+    }
+    setResult(r);
+    setLearning(await loadLearning(id));
+    void refreshFigures(id);
+    setRegen("idle");
+  };
+  const last = lastAttempts(learning?.attempts ?? []);
+  const nothingLearned = learning !== null && !learning.concepts.length && !learning.questions.length;
   const detailFigures = result?.ok ? figuresFor(figures[id] ?? [], result.detail.detail.figures).detail : [];
 
   return (
@@ -141,6 +169,47 @@ export default function Paper() {
             ))}
             {!result.detail.detail.claims.length && <Text style={styles.muted}>No claim could be matched to the paper.</Text>}
           </View>
+
+          {learning && learning.concepts.length > 0 && (
+            <View style={styles.section}>
+              <Label>Concepts</Label>
+              <View style={styles.pills}>
+                {learning.concepts.map((c) => (
+                  <Toggle key={c.id} label={c.name} active={false} onPress={() => router.push(`/concept/${c.id}`)} />
+                ))}
+              </View>
+            </View>
+          )}
+
+          {learning && learning.questions.length > 0 && (
+            <View style={styles.section}>
+              <Label>Questions</Label>
+              {learning.questions.map((q) => (
+                <QuestionBlock key={q.id} q={q} last={last[q.id]} onAnswer={answer(q.id)} />
+              ))}
+            </View>
+          )}
+
+          <View style={styles.section}>
+            {nothingLearned && (
+              <Text style={styles.muted}>
+                This explanation was written before concepts and questions existed. Regenerate it to get them.
+              </Text>
+            )}
+            {regen === "running" ? (
+              <View style={styles.regenerating}>
+                <ActivityIndicator color={colors.muted} />
+                <Text style={styles.muted}>Rewriting the explanation from the full text…</Text>
+              </View>
+            ) : (
+              <Button
+                label={regen === "confirm" ? "Tap again to regenerate (about $0.01)" : "Regenerate this explanation"}
+                kind="quiet"
+                onPress={regenerate}
+              />
+            )}
+            {regen !== "idle" && regen !== "confirm" && regen !== "running" && <Text style={styles.muted}>{regen}</Text>}
+          </View>
         </>
       )}
 
@@ -161,6 +230,8 @@ const styles = StyleSheet.create({
   figure: { gap: space.sm, marginBottom: space.lg },
   figureLabel: { color: colors.accent, fontSize: 12, letterSpacing: 1, textTransform: "uppercase" },
   quote: { borderLeftWidth: 2, borderLeftColor: colors.border, paddingLeft: space.sm },
+  pills: { flexDirection: "row", flexWrap: "wrap", gap: space.xs },
+  regenerating: { flexDirection: "row", alignItems: "center", gap: space.sm },
   state: { gap: space.sm, paddingVertical: space.xl },
   stateTitle: { ...serif, color: colors.text, fontSize: 20 },
   muted: { color: colors.muted, fontSize: 14, lineHeight: 21 },

@@ -1,6 +1,6 @@
 # Plan de la V2
 
-État : **plan validé le 14 novembre 2026** (décisions en section 6). **Étapes 1 à 3 faites le 15 novembre 2026** (carnet, stats et bilan du lundi, profil appris et écran Profil) : voir la section 8. Étapes 4 et 5 : rien n'est codé, leurs migrations restent dans `supabase/v2_pending/`.
+État : **plan validé le 14 novembre 2026** (décisions en section 6). **Étapes 1 à 3 faites le 15 novembre 2026** (carnet, stats et bilan du lundi, profil appris et écran Profil), **étape 4 faite le 20 novembre 2026** (concepts et questions) : voir la section 8. Étape 5 : rien n'est codé, sa migration reste dans `supabase/v2_pending/`.
 
 Périmètre (spec d'origine, sections 5, 6, 7 et 10) : (a) profil appris et écran Profil, (b) fiches concepts et questions de compréhension, (c) « Demander à l'article », (d) carnet, (e) statistiques et bilan du lundi.
 
@@ -148,13 +148,28 @@ L'app enregistre le temps passé sur chaque carte (événement `viewed`, `durati
 
 Non fait dans cette étape, volontairement : l'ajout des titres aimés et rejetés au prompt de classement (section 3). Il modifie un prompt : il viendra avec l'étape 4, pour mesurer un effet à la fois.
 
-### Vérifié
+### Étape 4, faite le 20 novembre 2026 : concepts et questions
+
+Choix validés par Antoine le 20 novembre : questions archivées (avec leurs réponses) quand un détail est régénéré ; réponses courtes auto-évaluées (« I had it / I didn't ») ; compteurs « questions réussies » et « nouveaux concepts » dès cette étape.
+
+- **Même appel qu'avant** au modèle du détail (Haiku) : il rend aussi 1 à 3 concepts prérequis et 2 ou 3 questions. Le prompt reçoit les concepts connus (150 au plus, même domaine d'abord, puis les plus récents).
+- **Contrôles sans modèle** (`learning.py` / `learning.ts`, cas partagés) : une question dont la citation est introuvable dans l'article, ou un QCM dont la réponse n'est pas l'une de 2 à 6 options distinctes, est retirée (gardée dans `details.detail.removed_questions`) ; cela ne change pas le badge « vérifié ». Un identifiant de concept déjà en base est réutilisé sans réécrire sa fiche ; un nouveau doit avoir un nom et ses deux définitions. Les définitions sont des rappels de cours, **non vérifiées** par une citation (l'écran le dit).
+- **Stockage** : concepts, liens et questions dans leurs tables (écrits par `open-paper` ou par `python -m arxiv_digest open`), plus dans le JSON du détail.
+- **Régénérer** : bouton de la vue profondeur (deux appuis, environ 0,01 $). Remplace le détail, archive les questions, refait les liens article-concept. Les articles ouverts avant le 20 novembre n'ont ni concepts ni questions tant qu'on ne les régénère pas (décision 6).
+- **App** : onglet Concepts (5 onglets), fiche concept avec fusion d'un doublon (`merge_concepts`, en ligne seulement) ; questions jouables hors ligne (réponses par la file d'attente) ; Stats, section « Learning » ; écran de fin, ligne « new concepts ».
+- **Classement** : le prompt reçoit les 10 derniers titres aimés (interesting, Save) et rejetés (not for me) des 30 derniers jours.
+
+Vérifié : migration sur Postgres embarqué (`supabase/check/check_concepts.mjs` : RLS, archivage, fusion, compteurs) puis appliquée au vrai projet le 20 novembre ; tests pipeline (88), Edge Function (22), app (21) ; fonction redéployée, refuse un appel sans session (401).
+
+Pas encore vérifié : génération réelle d'un détail avec concepts et questions (essai payant à faire) ; l'app dans un navigateur et sur le téléphone ; coût mesuré.
+
+### Vérifié (étapes 1 à 3)
 
 - Migrations sur une copie du schéma (Postgres embarqué), puis appliquées au vrai projet le 15 novembre 2026.
 - Tests : règles d'apprentissage, signaux implicites, application à la configuration, lecture et écriture en base simulées (`pipeline/tests/test_profile.py`) ; export, recherche, bilan du lundi, modifications du profil (`app/src/lib/logic_v2.test.ts`).
 - Dans un navigateur, sur le vrai projet : Stats, Notebook (note et tags écrits puis relus), Profil (réglage et verrou écrits puis relus), événement `viewed` reçu en base ; profil initialisé et premier apprentissage par `python -m arxiv_digest profile`.
 
-### Pas encore vérifié
+### Pas encore vérifié (étapes 1 à 3)
 
 - Sur téléphone : rien de ces trois étapes (nouvel APK nécessaire), en particulier l'export par le menu de partage d'Android.
 - La page du bilan du lundi n'a été vue qu'à travers ses tests : elle n'apparaît qu'un lundi.

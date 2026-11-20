@@ -35,7 +35,7 @@ def night(cfg):
 
 def stored_detail():
     d = Detail(explanation_lay="l", explanation_expert="e", context=Context(before="b", change="c", limitations="l"),
-               claims=[Claim(statement="s", quote="q")], figures=[])
+               claims=[Claim(statement="s", quote="q")], figures=[], concepts=[], questions=[])
     return StoredDetail(arxiv_id="2611.00001", detail=d, removed_claims=[], verification_status="verified",
                         text_source="html", based_on_abstract=False, model="m", prompt_version="v")
 
@@ -146,11 +146,54 @@ def test_supabase_detail_and_usage_writes(cfg, tmp_path):
     store = rest.store(tmp_path)
     store.save_detail(stored_detail())
     store.log_usage({"date": "2026-11-13", "step": "detail", "model": "m", "cost_usd": 0.006})
-    detail, usage = rest.requests
+    detail, usage = rest.requests[0], rest.requests[-1]
     assert detail["table"] == "details" and detail["body"][0]["paper_id"] == "2611.00001"
     assert "arxiv_id" not in detail["body"][0] and detail["params"] == {"on_conflict": "paper_id"}
+    # Concepts et questions vivent dans leurs tables, pas dans le JSON du détail.
+    assert "concepts" not in detail["body"][0]["detail"] and "questions" not in detail["body"][0]["detail"]
+    assert detail["body"][0]["detail"]["removed_questions"] == [] and "removed_questions" not in detail["body"][0]
     assert usage["table"] == "api_usage" and usage["body"]["step"] == "detail"
     assert server_config(cfg)["monthly_usd"] == cfg.budget.monthly_usd
+    assert {"concepts", "questions"} <= set(server_config(cfg)["detail_schema"]["properties"])
+
+
+def test_supabase_learning_writes(tmp_path):
+    from arxiv_digest.models import ConceptEntry, Question
+
+    rest = FakeRest({"concepts": [{"id": "josephson-effect"}]})
+    store = rest.store(tmp_path)
+    sd = stored_detail()
+    sd.detail.concepts = [
+        ConceptEntry(id="josephson-effect", name="J", simple_definition="", expert_definition="", related=["andreev-bound-state"]),
+        ConceptEntry(id="Andreev bound state", name="ABS", simple_definition="s", expert_definition="e", related=[]),
+    ]
+    sd.detail.questions = [Question(kind="short", prompt="Q", options=[], answer="a", explanation="x", quote="q")]
+    store.save_detail(sd, "cond-mat.supr-con")
+    by = [(r["method"], r["table"]) for r in rest.requests]
+    assert by == [
+        ("POST", "details"), ("GET", "concepts"), ("POST", "concepts"), ("DELETE", "paper_concepts"),
+        ("POST", "paper_concepts"), ("POST", "concept_links"), ("PATCH", "questions"), ("POST", "questions"),
+    ]
+    new = rest.requests[2]
+    assert [c["id"] for c in new["body"]] == ["andreev-bound-state"]  # la fiche connue n'est pas réécrite
+    assert new["body"][0]["primary_category"] == "cond-mat.supr-con" and "ignore-duplicates" in new["prefer"]
+    assert [r["concept_id"] for r in rest.requests[4]["body"]] == ["josephson-effect", "andreev-bound-state"]
+    assert rest.requests[5]["body"] == [{"a": "andreev-bound-state", "b": "josephson-effect"}]
+    archive = rest.requests[6]
+    assert archive["params"] == {"paper_id": "eq.2611.00001", "archived_at": "is.null"} and archive["body"]["archived_at"]
+    assert rest.requests[7]["body"][0] | {} == {"paper_id": "2611.00001", "position": 0, "kind": "short", "prompt": "Q",
+                                               "options": [], "answer": "a", "explanation": "x", "quote": "q"}
+
+
+def test_supabase_taste_titles(tmp_path):
+    rest = FakeRest({"feedback": [
+        {"type": "saved", "paper_id": "a", "papers": {"title": "Paper  A"}},
+        {"type": "interesting", "paper_id": "a", "papers": {"title": "Paper A"}},
+        {"type": "not_interesting", "paper_id": "b", "papers": {"title": "Paper B"}},
+    ]})
+    liked, rejected = rest.store(tmp_path).taste("2026-11-20")
+    assert (liked, rejected) == (["Paper A"], ["Paper B"])
+    assert rest.requests[0]["params"]["created_at"] == "gte.2026-10-21"
 
 
 def test_supabase_figures_writes(cfg, tmp_path):

@@ -24,6 +24,7 @@ function Screens() {
         <Stack.Screen name="edition" options={{ headerShown: false }} />
         <Stack.Screen name="paper/[id]" />
         <Stack.Screen name="notebook/[id]" />
+        <Stack.Screen name="concept/[id]" />
         <Stack.Screen name="profile" />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn}>

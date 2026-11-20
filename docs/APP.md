@@ -43,6 +43,7 @@ npx eas-cli@latest build --platform android --profile preview
 | Notebook (V2) | `src/app/(tabs)/notebook.tsx`, `src/app/notebook/[id].tsx` | Articles sauvegardés, recherche, tags, note, export Markdown et BibTeX |
 | Stats (V2) | `src/app/(tabs)/stats.tsx` | Lecture par semaine et par sous-catégorie, sur 4, 8 ou 12 semaines |
 | Profil (V2) | `src/app/profile.tsx` | Poids appris, niveaux, catégories suivies, nombre d'articles, heures des notifications |
+| Concepts (V2) | `src/app/(tabs)/concepts.tsx`, `src/app/concept/[id].tsx` | Concepts rencontrés, recherche ; fiche avec définitions simple et experte, concepts liés, articles ; fusion d'un doublon |
 | Widget (Android) | `src/widget/` | Série d'éditions faites (terminées, ou toutes les cartes vues) et articles lus sur les 7 dernières éditions ; rafraîchi par l'app et toutes les heures en arrière-plan. Enregistré dans `index.ts` (point d'entrée), déclaré dans `app.json` (`react-native-android-widget`) |
 
 - **Données** (`src/lib/data.ts`) : réseau d'abord, cache du téléphone en secours. Le détail d'un article vient du cache, sinon de la table `details`, sinon de l'Edge Function `open-paper` (première ouverture).
@@ -69,4 +70,5 @@ Premier APK construit le 14 novembre 2026 (sans les figures) : https://expo.dev/
 - KaTeX est chargé depuis Internet : hors ligne, au premier affichage, les équations restent en LaTeX brut.
 - Réglages (nombre d'articles, catégories, heures des notifications), notifications push (jeton Expo, projet Firebase) et build APK : étapes suivantes de la spec.
 - V2, étapes 1 à 3 (carnet, stats, bilan du lundi, profil) : vérifiées dans un navigateur le 15 novembre 2026, pas encore sur téléphone ; détail dans `docs/V2_PLAN.md`, section 8.
-- Concepts, questions, « Demander à l'article » : étapes 4 et 5 de la V2, non codées.
+- Concepts et questions (V2, étape 4) : pastilles de concepts, section Questions (`src/components/Questions.tsx`) et bouton « Regenerate » dans la vue profondeur ; section « Learning » des Stats ; nouveaux concepts sur l'écran de fin. État dans `docs/V2_PLAN.md`, section 8.
+- « Demander à l'article » : étape 5 de la V2, non codée.

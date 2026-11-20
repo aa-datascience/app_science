@@ -19,6 +19,7 @@ import anthropic
 import httpx
 
 from .config import Config
+from .learning import MAX_KNOWN, resolve_concepts
 from .models import Candidate, Detail, Edition, Figure, Paper, Ranked, RankItem, StoredDetail, StoredFigure
 from .steps import SOURCE_NOTES, Article, load_prompt
 
@@ -40,6 +41,13 @@ def _write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def _with_defaults(detail: dict) -> dict:
+    """Détails écrits avant les figures, ou avant les concepts et questions (V2, étape 4)."""
+    for key in ("figures", "concepts", "questions"):
+        detail.setdefault(key, [])
+    return detail
+
+
 def server_config(cfg: Config) -> dict:
     """Ce dont l'Edge Function open-paper a besoin, tiré de config.yaml et de prompts/."""
     system, _ = load_prompt("system")
@@ -56,6 +64,7 @@ def server_config(cfg: Config) -> dict:
         "prompt_version": version,
         "source_notes": SOURCE_NOTES,
         "detail_schema": anthropic.transform_schema(Detail),
+        "max_known_concepts": MAX_KNOWN,
     }
 
 
@@ -101,8 +110,16 @@ class LocalStore:
         if not path.exists():
             return None
         row = _read_json(path, {})
-        row["detail"].setdefault("figures", [])  # détails écrits avant les figures
+        _with_defaults(row["detail"])
         return StoredDetail.model_validate(row)
+
+    def concepts(self) -> list[dict]:
+        """Concepts déjà connus : id, name, primary_category, created_at."""
+        return _read_json(self.out / "concepts.json", [])
+
+    def taste(self, day: str) -> tuple[list[str], list[str]]:
+        """Titres récemment aimés et rejetés : les feedbacks ne vivent qu'en base."""
+        return [], []
 
     # --- écriture ---
 
@@ -132,8 +149,16 @@ class LocalStore:
         ]
         _write_json(self.out / "reserve.json", rows)
 
-    def save_detail(self, detail: StoredDetail) -> None:
+    def save_detail(self, detail: StoredDetail, primary_category: str = "") -> None:
         _write_json(self.out / "details" / f"{detail.arxiv_id}.json", detail.model_dump())
+        known = self.concepts()
+        learned = resolve_concepts([c.model_dump() for c in detail.detail.concepts], {c["id"] for c in known})
+        now = datetime.now(timezone.utc).isoformat()
+        known += [
+            {"id": c["id"], "name": c["name"], "primary_category": primary_category, "created_at": now}
+            for c in learned["new"]
+        ]
+        _write_json(self.out / "concepts.json", known)
 
     # --- figures ---
 
@@ -380,9 +405,15 @@ class SupabaseStore:
         if not rows:
             return None
         r = rows[0]
-        r["detail"].setdefault("figures", [])  # détails écrits avant les figures
+        detail = _with_defaults(dict(r["detail"]))
+        removed_questions = detail.pop("removed_questions", [])
+        if not detail["questions"]:  # en base, les questions vivent dans leur table
+            detail["questions"] = [
+                {k: q[k] for k in ("kind", "prompt", "options", "answer", "explanation", "quote")}
+                for q in self._get("questions", select="*", paper_id=f"eq.{arxiv_id}", archived_at="is.null", order="position")
+            ]
         return StoredDetail(
-            arxiv_id=r["paper_id"], detail=r["detail"], removed_claims=r["removed_claims"],
+            arxiv_id=r["paper_id"], detail=detail, removed_claims=r["removed_claims"], removed_questions=removed_questions,
             verification_status=r["verification_status"], text_source=r["text_source"],
             based_on_abstract=r["based_on_abstract"], text_truncated=r["text_truncated"],
             text_mode=r["text_mode"], model=r["model"], prompt_version=r["prompt_version"],
@@ -454,11 +485,69 @@ class SupabaseStore:
         self.http.patch("/editions", params={"date": f"eq.{day}"}, json=ready).raise_for_status()
         log.info("base: édition %s écrite (%d cartes, %d articles classés)", day, len(edition.items), len(ranked))
 
-    def save_detail(self, detail: StoredDetail) -> None:
-        self.local.save_detail(detail)
+    def concepts(self) -> list[dict]:
+        return self._get("concepts", select="id,name,primary_category,created_at")
+
+    def taste(self, day: str, days: int = 30) -> tuple[list[str], list[str]]:
+        """Titres des articles aimés (interesting, Save) et rejetés (not for me) des `days` derniers jours."""
+        since = (date.fromisoformat(day) - timedelta(days=days)).isoformat()
+        rows = self._get(
+            "feedback", select="type,paper_id,papers(title)", created_at=f"gte.{since}",
+            type="in.(interesting,saved,not_interesting)", order="created_at.desc",
+        )
+        liked: list[str] = []
+        rejected: list[str] = []
+        seen: set[tuple[str, str]] = set()
+        for r in rows:
+            side = "rejected" if r["type"] == "not_interesting" else "liked"
+            title = (r.get("papers") or {}).get("title", "")
+            if title and (side, r["paper_id"]) not in seen:
+                seen.add((side, r["paper_id"]))
+                (rejected if side == "rejected" else liked).append(" ".join(title.split()))
+        return liked, rejected
+
+    def save_detail(self, detail: StoredDetail, primary_category: str = "") -> None:
+        """Détail, puis concepts et questions dans leurs tables (même écriture que l'Edge Function)."""
+        self.local.save_detail(detail, primary_category)
         row = detail.model_dump()
         row["paper_id"] = row.pop("arxiv_id")
+        row["detail"].pop("concepts")
+        row["detail"].pop("questions")
+        row["detail"]["removed_questions"] = row.pop("removed_questions")
         self._upsert("details", [row], "paper_id")
+        self._save_learning(detail, primary_category)
+
+    def _insert_ignore(self, table: str, rows: list[dict], on_conflict: str) -> None:
+        if rows:
+            self.http.post(
+                f"/{table}", params={"on_conflict": on_conflict},
+                headers={"Prefer": "resolution=ignore-duplicates,return=minimal"}, json=rows,
+            ).raise_for_status()
+
+    def _save_learning(self, detail: StoredDetail, primary_category: str) -> None:
+        pid = detail.arxiv_id
+        known = {c["id"] for c in self._get("concepts", select="id")}
+        learned = resolve_concepts([c.model_dump() for c in detail.detail.concepts], known)
+        # Une fiche existante n'est jamais réécrite : seules les nouvelles sont créées.
+        self._insert_ignore(
+            "concepts", [{**c, "primary_category": primary_category, "first_paper_id": pid} for c in learned["new"]], "id"
+        )
+        self.http.delete("/paper_concepts", params={"paper_id": f"eq.{pid}"}).raise_for_status()
+        self._insert_ignore(
+            "paper_concepts", [{"paper_id": pid, "concept_id": c, "position": i} for i, c in enumerate(learned["paper"])],
+            "paper_id,concept_id",
+        )
+        self._insert_ignore("concept_links", [{"a": a, "b": b} for a, b in learned["links"]], "a,b")
+        # Les questions précédentes sont archivées, avec leurs réponses, jamais supprimées.
+        self.http.patch(
+            "/questions", params={"paper_id": f"eq.{pid}", "archived_at": "is.null"},
+            json={"archived_at": datetime.now(timezone.utc).isoformat()},
+        ).raise_for_status()
+        if detail.detail.questions:
+            self.http.post(
+                "/questions", headers={"Prefer": "return=minimal"},
+                json=[{"paper_id": pid, "position": i, **q.model_dump()} for i, q in enumerate(detail.detail.questions)],
+            ).raise_for_status()
 
     # --- figures ---
 

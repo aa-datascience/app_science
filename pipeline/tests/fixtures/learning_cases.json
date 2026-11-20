@@ -1,0 +1,109 @@
+{
+  "text": "We measure the critical temperature $T_{c}$ of the film and find $T_{c}=9.2$ K. The supercurrent is carried by Andreev bound states; the gap closes at the transition. The current-phase relation becomes strongly skewed in the short-junction limit.",
+  "slugify": [
+    ["Andreev Bound State", "andreev-bound-state"],
+    ["andreev_bound-state", "andreev-bound-state"],
+    ["  Bogoliubov–de Gennes equations ", "bogoliubov-de-gennes-equations"],
+    ["Schrödinger équation", "schrodinger-equation"],
+    ["--", ""],
+    ["T_c (critical temperature)", "t-c-critical-temperature"]
+  ],
+  "questions": [
+    {
+      "name": "QCM valide, réponse ramenée au texte de l'option",
+      "questions": [
+        {"kind": "mcq", "prompt": "What carries the supercurrent?", "options": ["Cooper pairs in the bulk", "Andreev bound states", "Phonons"],
+         "answer": "andreev bound states.", "explanation": "e", "quote": "The supercurrent is carried by Andreev bound states"}
+      ],
+      "kept": [0],
+      "answers": ["Andreev bound states"]
+    },
+    {
+      "name": "citation introuvable : retirée",
+      "questions": [
+        {"kind": "short", "prompt": "What is Tc?", "options": [], "answer": "9.2 K", "explanation": "e", "quote": "we find a critical temperature of 12 K"},
+        {"kind": "short", "prompt": "What is Tc?", "options": ["ignored"], "answer": "9.2 K", "explanation": "e", "quote": "find $T_{c}=9.2$ K"}
+      ],
+      "kept": [],
+      "answers": []
+    },
+    {
+      "name": "réponse courte : options vidées",
+      "questions": [
+        {"kind": "short", "prompt": "What is Tc?", "options": ["ignored"], "answer": "9.2 K", "explanation": "e", "quote": "of the film and find $T_{c}=9.2$ K"}
+      ],
+      "kept": [0],
+      "answers": ["9.2 K"],
+      "options": [[]]
+    },
+    {
+      "name": "QCM dont la réponse n'est pas une option",
+      "questions": [
+        {"kind": "mcq", "prompt": "Q", "options": ["a long option", "another option"], "answer": "a third answer", "explanation": "e",
+         "quote": "The supercurrent is carried by Andreev bound states"}
+      ],
+      "kept": [],
+      "answers": []
+    },
+    {
+      "name": "QCM à une seule option distincte",
+      "questions": [
+        {"kind": "mcq", "prompt": "Q", "options": ["Skewed", "skewed.", "  "], "answer": "Skewed", "explanation": "e",
+         "quote": "The current-phase relation becomes strongly skewed in the short-junction limit."}
+      ],
+      "kept": [],
+      "answers": []
+    },
+    {
+      "name": "trois questions au plus, question vide retirée",
+      "questions": [
+        {"kind": "short", "prompt": "", "options": [], "answer": "x", "explanation": "e", "quote": "The supercurrent is carried by Andreev bound states"},
+        {"kind": "short", "prompt": "Q1", "options": [], "answer": "x", "explanation": "e", "quote": "The supercurrent is carried by Andreev bound states"},
+        {"kind": "short", "prompt": "Q2", "options": [], "answer": "x", "explanation": "e", "quote": "the gap closes at the transition"},
+        {"kind": "short", "prompt": "Q3", "options": [], "answer": "x", "explanation": "e", "quote": "strongly skewed in the short-junction limit"},
+        {"kind": "short", "prompt": "Q4", "options": [], "answer": "x", "explanation": "e", "quote": "strongly skewed in the short-junction limit"}
+      ],
+      "kept": [1, 2, 3],
+      "answers": ["x", "x", "x"]
+    }
+  ],
+  "concepts": [
+    {
+      "name": "réutilisation d'un concept connu, création d'un nouveau, liens",
+      "known": ["andreev-reflection", "josephson-effect"],
+      "entries": [
+        {"id": "josephson-effect", "name": "Josephson effect", "simple_definition": "", "expert_definition": "", "related": ["andreev-bound-state"]},
+        {"id": "Andreev Bound State", "name": "Andreev bound state", "simple_definition": "s", "expert_definition": "e", "related": ["andreev-reflection", "unknown-thing", "andreev-bound-state"]}
+      ],
+      "paper": ["josephson-effect", "andreev-bound-state"],
+      "new": ["andreev-bound-state"],
+      "links": [["andreev-bound-state", "josephson-effect"], ["andreev-bound-state", "andreev-reflection"]]
+    },
+    {
+      "name": "identifiant inconnu sans fiche complète : ignoré ; doublon ignoré ; trois au plus",
+      "known": ["a-known"],
+      "entries": [
+        {"id": "made-up", "name": "Made up", "simple_definition": "", "expert_definition": "", "related": []},
+        {"id": "a-known", "name": "A", "simple_definition": "", "expert_definition": "", "related": []},
+        {"id": "A known", "name": "A", "simple_definition": "s", "expert_definition": "e", "related": []},
+        {"id": "", "name": "Second Concept", "simple_definition": "s", "expert_definition": "e", "related": ["a-known"]},
+        {"id": "third", "name": "Third", "simple_definition": "s", "expert_definition": "e", "related": []},
+        {"id": "fourth", "name": "Fourth", "simple_definition": "s", "expert_definition": "e", "related": []}
+      ],
+      "paper": ["a-known", "second-concept", "third"],
+      "new": ["second-concept", "third"],
+      "links": [["a-known", "second-concept"]]
+    }
+  ],
+  "known_for_prompt": {
+    "concepts": [
+      {"id": "old-qp", "name": "Old quant", "primary_category": "quant-ph", "created_at": "2026-11-01T00:00:00Z"},
+      {"id": "new-sc", "name": "New SC", "primary_category": "cond-mat.supr-con", "created_at": "2026-11-10T00:00:00Z"},
+      {"id": "new-qp", "name": "New quant", "primary_category": "quant-ph", "created_at": "2026-11-12T00:00:00Z"},
+      {"id": "old-sc", "name": "Old SC", "primary_category": "cond-mat.supr-con", "created_at": "2026-11-02T00:00:00Z"}
+    ],
+    "category": "cond-mat.supr-con",
+    "limit": 3,
+    "expected": "- new-sc: New SC\n- old-sc: Old SC\n- new-qp: New quant"
+  }
+}

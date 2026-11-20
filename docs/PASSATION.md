@@ -68,7 +68,9 @@ Règles de sécurité, sans exception :
 
 **Codé mais pas encore vérifié sur le téléphone :** sections 7 à 10 de `docs/VERIFICATIONS_TELEPHONE.md` (carnet, stats, profil, widget, retour à la première carte d'une nouvelle édition). Le rappel du soir n'a pas encore été observé de bout en bout.
 
-**Pas commencé :** V2 étapes 4 et 5 (leurs migrations sont écrites dans `supabase/v2_pending/`, **non appliquées**), V3.
+**Étape 4 (concepts et questions)** : codée, migration appliquée et fonction déployée le 20 novembre 2026 ; voir `docs/V2_PLAN.md`, section 8, pour ce qui reste à vérifier.
+
+**Pas commencé :** V2 étape 5 (sa migration est écrite dans `supabase/v2_pending/`, **non appliquée**), V3.
 
 ## 5. Décisions qui modifient la spec
 

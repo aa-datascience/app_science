@@ -88,7 +88,8 @@ export type OutboxItem =
   | { kind: "complete"; date: string; at: string }
   | { kind: "notebook_add"; paper_id: string; at: string }
   | { kind: "notebook_remove"; paper_id: string }
-  | { kind: "notebook_update"; paper_id: string; note: string; tags: string[]; at: string };
+  | { kind: "notebook_update"; paper_id: string; note: string; tags: string[]; at: string }
+  | { kind: "attempt"; row: Attempt };
 
 // ---------- V2 : carnet, statistiques, profil ----------
 
@@ -114,6 +115,9 @@ export type WeekStats = {
   saved: number;
   read_rate: number | null;
   editions_completed: number;
+  questions_answered?: number; // première réponse à une question, cette semaine (étape 4)
+  questions_correct?: number;
+  new_concepts?: number;
 };
 
 export type CategoryStats = { category: string; shown: number; read: number; read_rate: number | null };
@@ -157,4 +161,43 @@ export type WidgetData = {
   streak: number; // éditions terminées d'affilée, sans compter celle du jour si elle est en cours
   today: WidgetDay | null; // dernière édition parue
   days: WidgetDay[]; // 7 dernières éditions, de la plus ancienne à la plus récente
+};
+
+// ---------- V2, étape 4 : concepts et questions ----------
+
+/** Une ligne de la vue concept_cards : une fiche concept et les articles où il apparaît. */
+export type ConceptCard = {
+  id: string;
+  name: string;
+  simple_definition: string;
+  expert_definition: string;
+  primary_category: string;
+  first_paper_id: string | null;
+  created_at: string;
+  paper_count: number;
+  papers: { paper_id: string; title: string }[];
+  related: string[];
+};
+
+/** Une question de compréhension d'un article (table questions, non archivée). */
+export type QuestionRow = {
+  id: number;
+  paper_id: string;
+  position: number;
+  kind: "mcq" | "short";
+  prompt: string;
+  options: string[];
+  answer: string;
+  explanation: string;
+  quote: string;
+};
+
+/** Une réponse donnée dans l'app. Réponse courte : `correct` est l'avis du lecteur sur lui-même. */
+export type Attempt = { question_id: number; answer: string; correct: boolean | null; created_at: string };
+
+/** Concepts et questions d'un article, gardés sur le téléphone pour le hors-ligne. */
+export type Learning = {
+  concepts: { id: string; name: string }[];
+  questions: QuestionRow[];
+  attempts: Attempt[];
 };

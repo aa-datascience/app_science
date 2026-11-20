@@ -6,6 +6,7 @@
     python -m arxiv_digest open 2611.01234  # simule l'ouverture d'un article : génère son détail
     python -m arxiv_digest compare          # essai de coût et de qualité (voir compare.py)
     python -m arxiv_digest profile          # apprend des feedbacks en attente et affiche le profil (gratuit)
+    python -m arxiv_digest push-config      # réécrit server_config (prompts, schéma) pour les Edge Functions (gratuit)
 """
 
 from __future__ import annotations
@@ -32,8 +33,9 @@ from .models import Candidate, Edition, EditionItem, Paper, Ranked
 from .prefilter import select_candidates
 from .profile import sync_profile
 from .scoring import score_all, select_edition
+from .learning import known_for_prompt
 from .steps import Article, generate_detail, make_article, make_cards, rank
-from .store import _write_json, make_store
+from .store import _write_json, make_store, server_config
 
 log = logging.getLogger("arxiv_digest")
 
@@ -143,7 +145,7 @@ def run(
 
         # Classement (ou réserve de la semaine s'il n'y a rien de neuf)
         if candidates:
-            ranked = score_all(rank(llm, candidates, cfg), cfg)
+            ranked = score_all(rank(llm, candidates, cfg, _taste(store, day)), cfg)
         else:
             ranked = [r for r in store.reserve(day) if r.candidate.paper.arxiv_id not in seen_ids]
             notes.append("Pas de nouvelles annonces arXiv : édition tirée de la réserve de la semaine.")
@@ -226,6 +228,15 @@ def run(
 # ---------- À l'ouverture d'un article : détail, généré une fois puis stocké ----------
 
 
+def _taste(store, day: str) -> tuple[list[str], list[str]]:
+    """Titres récemment aimés et rejetés, pour le classement ; une base illisible ne bloque pas l'édition."""
+    try:
+        return store.taste(day)
+    except httpx.HTTPError as e:
+        log.error("feedbacks récents illisibles (%s) : classement sans eux", e)
+        return [], []
+
+
 def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
     """Ce que fait l'Edge Function open-paper quand une carte est ouverte dans l'app."""
     store = make_store(out)
@@ -258,14 +269,15 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
             art = fetch_article(paper, cfg)
             art.figures = list(store.get_figures(arxiv_id)) or art.figures
             store.save_figures(arxiv_id, art.figures)
-        detail = generate_detail(llm, art, cfg)
+        known = known_for_prompt(store.concepts(), paper.primary_category)
+        detail = generate_detail(llm, art, cfg, known_concepts=known)
     except anthropic.AuthenticationError:
         log.error("clé API Anthropic absente ou invalide (voir .env.example)")
         return 2
     except (LLMRefused, LLMInvalid, anthropic.APIConnectionError, anthropic.APIStatusError) as e:
         log.error("détail %s: échec (%r)", arxiv_id, e)
         return 1
-    store.save_detail(detail)
+    store.save_detail(detail, paper.primary_category)
     store.mark_figures(arxiv_id, "detail", {f.label: f.what_to_look_at for f in detail.detail.figures})
     n_fig, _ = sync_figures(
         store, user_agent=cfg.arxiv.user_agent, delay_seconds=cfg.arxiv.delay_seconds,
@@ -273,7 +285,9 @@ def open_paper(cfg: Config, *, day: str, out: Path, arxiv_id: str) -> int:
     )
     print(
         f"Détail {arxiv_id}: {detail.verification_status}, {len(detail.detail.claims)} affirmations sourcées, "
-        f"{len(detail.removed_claims)} retirées, {len(detail.detail.figures)} figures choisies "
+        f"{len(detail.removed_claims)} retirées, {len(detail.detail.figures)} figures choisies, "
+        f"{len(detail.detail.concepts)} concepts, {len(detail.detail.questions)} questions "
+        f"({len(detail.removed_questions)} retirées) "
         f"({n_fig} copiées), {llm.run_spent:.4f}$"
     )
     return 0
@@ -312,6 +326,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser(
         "profile", parents=[common],
         help="apprend des feedbacks en attente et affiche le profil (sans modèle ; ne fait rien sans base)",
+    )
+
+    sub.add_parser(
+        "push-config", parents=[common],
+        help="réécrit server_config (prompts, schéma, prix) à partir de config.yaml et de prompts/ (gratuit)",
     )
 
     o = sub.add_parser("open", parents=[common], help="simule l'ouverture d'un article : génère et stocke son détail")
@@ -358,6 +377,15 @@ def main(argv: list[str] | None = None) -> int:
             ("Mots-clés négatifs", cfg.prefilter.keywords_negative), ("Niveaux", cfg.profile.levels),
         ):
             print(f"{title} : " + (", ".join(f"{k} {v}" for k, v in table.items()) or "aucun"))
+        return 0
+
+    if args.command == "push-config":
+        store = make_store(args.out)
+        if not hasattr(store, "http"):
+            print("Pas de base configurée : rien à écrire.")
+            return 1
+        store._upsert("server_config", [{"id": 1, "config": server_config(load_config(args.config))}], "id")
+        print("server_config réécrit (la nuit le refait de toute façon).")
         return 0
 
     needs_key = args.command != "run" or not args.no_llm

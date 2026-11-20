@@ -10,7 +10,7 @@ from arxiv_digest.budget import affordable_size, can_open, estimate_cost, month_
 from arxiv_digest.citations import check_claims, normalize
 from arxiv_digest.fulltext import FullText, select_sections
 from arxiv_digest.llm import LLM, BudgetExceeded, read_usage, usage_cost
-from arxiv_digest.models import Candidate, Card, Claim, Context, Detail, RankBatch, RankItem
+from arxiv_digest.models import Candidate, Card, Claim, ConceptEntry, Context, Detail, Question, RankBatch, RankItem
 from arxiv_digest.steps import Article, generate_detail, make_article, make_cards, rank
 
 TEXT = (
@@ -26,6 +26,13 @@ def detail_with(quotes):
         context=Context(before="b", change="c", limitations="l"),
         claims=[Claim(statement=f"s{i}", quote=q) for i, q in enumerate(quotes)],
         figures=[],
+        concepts=[ConceptEntry(id="andreev-bound-state", name="Andreev bound state", simple_definition="s",
+                               expert_definition="e", related=[])],
+        questions=[
+            Question(kind="mcq", prompt="What carries it?", options=["Andreev bound states", "Phonons"],
+                     answer="Andreev bound states", explanation="x", quote=GOOD),
+            Question(kind="short", prompt="Who?", options=[], answer="x", explanation="x", quote=BAD),
+        ],
     )
 
 
@@ -121,6 +128,16 @@ def test_rank_maps_results_and_logs_cost(cfg, tmp_path):
     assert llm.run_spent == pytest.approx((1000 * p_in + 100 * p_out) / 1e6)
     assert month_spent(read_usage(tmp_path / "usage.jsonl"), "2026-11-30") == pytest.approx(llm.run_spent)
     assert month_spent(read_usage(tmp_path / "usage.jsonl"), "2026-12-01") == 0
+    assert client.calls[0]["messages"][0]["content"].count("(none yet)") == 2  # pas encore de titres aimés ni rejetés
+
+
+def test_rank_prompt_lists_recently_liked_and_rejected_titles(cfg, tmp_path):
+    client = FakeClient()
+    liked = [f"Liked {i}" for i in range(12)]
+    rank(make_llm(cfg, tmp_path, client), [Candidate(paper=paper(1), prefilter_score=1.0)], cfg, (liked, ["Rejected 0"]))
+    prompt = client.calls[0]["messages"][0]["content"]
+    assert "- Liked 0\n" in prompt and "- Liked 9\n" in prompt and "Liked 10" not in prompt  # dix au plus
+    assert "- Rejected 0" in prompt and "{{" not in prompt
 
 
 def test_usage_cost_cache_and_batch_multipliers():
@@ -161,6 +178,14 @@ def test_detail_is_one_call_and_checks_quotes_without_model(cfg, tmp_path):
     assert TEXT in client.calls[0]["messages"][0]["content"][0]["text"]
     assert stored.verification_status == "verified"
     assert len(stored.detail.claims) == 3 and [c.quote for c in stored.removed_claims] == [BAD]
+    # Questions : celle dont la citation est introuvable est retirée, sans effet sur le statut.
+    assert [q.prompt for q in stored.detail.questions] == ["What carries it?"]
+    assert [q.prompt for q in stored.removed_questions] == ["Who?"]
+    assert [c.id for c in stored.detail.concepts] == ["andreev-bound-state"]
+    prompt = client.calls[0]["messages"][0]["content"][1]["text"]
+    assert "(none yet)" in prompt and "{{" not in prompt  # liste des concepts connus, vide ici
+    props = client.calls[0]["output_config"]["format"]["schema"]["properties"]
+    assert {"concepts", "questions"} <= set(props)
     bad = generate_detail(make_llm(cfg, tmp_path, FakeClient(quotes=[GOOD, BAD])), Article(paper(1), TEXT, "html"), cfg)
     assert bad.verification_status == "unverified"
 

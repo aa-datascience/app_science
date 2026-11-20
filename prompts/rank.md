@@ -6,6 +6,14 @@ Reader profile:
 Reader level by subfield (unlisted subfields: intermediate):
 {{levels}}
 
+Papers the reader recently marked as interesting or saved (titles):
+{{liked}}
+
+Papers the reader recently marked as not for them (titles):
+{{rejected}}
+
+Use these as examples of the reader's taste, not as topics to match word for word.
+
 For each paper give four scores from 1 to 5:
 - relevance: how well it fits the reader's interests. For papers marked [exploration], the reader does not follow that field: score how rewarding it would be for a curious physicist from outside it.
 - importance: significance of the result for its field. Most papers are 2 or 3; reserve 5 for results a whole community will discuss.

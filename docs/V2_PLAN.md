@@ -161,7 +161,13 @@ Choix validés par Antoine le 20 novembre : questions archivées (avec leurs ré
 
 Vérifié : migration sur Postgres embarqué (`supabase/check/check_concepts.mjs` : RLS, archivage, fusion, compteurs) puis appliquée au vrai projet le 20 novembre ; tests pipeline (88), Edge Function (22), app (21) ; fonction redéployée, refuse un appel sans session (401).
 
-Pas encore vérifié : génération réelle d'un détail avec concepts et questions (essai payant à faire) ; l'app dans un navigateur et sur le téléphone ; coût mesuré.
+Essai payant du 20 novembre (`python -m arxiv_digest open`, Haiku, deux articles de cond-mat.supr-con) : deux détails « verified », 3 concepts et 3 questions chacun, aucune question retirée ; le second article a réutilisé un concept du premier (« Majorana zero mode ») au lieu d'en créer un doublon. Questions jugées pertinentes (physique du résultat, citations exactes).
+
+Coût mesuré : 0,0128 $ et 0,0115 $ par article (61 000 à 63 000 jetons d'entrée, articles longs ; 10 700 à 12 900 en sortie, réflexion comprise). La sortie dépasse d'environ 2 000 jetons celle des détails précédents (6 000 à 11 000), plus que les 700 estimés : **environ +0,001 $ par article ouvert**, soit de l'ordre de **+0,1 $ par mois** à trois ouvertures par jour (estimation : +0,05 $). Un premier appel a été coupé à 16 000 jetons de sortie, payé (0,014 $) sans résultat puis refait : la limite de sortie du détail passe à 32 000 (`DETAIL_MAX_TOKENS`, recopiée dans `server_config`). L'essai a coûté 0,039 $ au total.
+
+Corrigé après l'essai : le modèle place souvent la bonne option d'un QCM en premier ; l'app mélange les options, dans un ordre fixe par question (`shuffledOptions`).
+
+Pas encore vérifié : génération par l'Edge Function (le chemin de l'app) ; l'app dans un navigateur et sur le téléphone.
 
 ### Vérifié (étapes 1 à 3)
 

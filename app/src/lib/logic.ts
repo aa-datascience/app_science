@@ -419,3 +419,21 @@ export function conceptName(cards: Pick<ConceptCard, "id" | "name">[], id: strin
 
 /** « 3/4 » questions réussies du premier coup, ou « – » si aucune réponse. */
 export const questionsLine = (answered = 0, correct = 0) => (answered ? `${correct}/${answered}` : "–");
+
+/**
+ * Options d'un QCM dans un ordre mélangé, toujours le même pour une question donnée : le modèle
+ * place souvent la bonne réponse en premier.
+ */
+export function shuffledOptions(options: string[], seed: number): string[] {
+  let s = (Math.abs(Math.trunc(seed)) * 2654435761 + 1) >>> 0;
+  const next = () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 2 ** 32;
+  };
+  const out = [...options];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}

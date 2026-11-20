@@ -21,7 +21,7 @@ import httpx
 from .config import Config
 from .learning import MAX_KNOWN, resolve_concepts
 from .models import Candidate, Detail, Edition, Figure, Paper, Ranked, RankItem, StoredDetail, StoredFigure
-from .steps import SOURCE_NOTES, Article, load_prompt
+from .steps import DETAIL_MAX_TOKENS, SOURCE_NOTES, Article, load_prompt
 
 log = logging.getLogger(__name__)
 RESERVE_DAYS = 7
@@ -55,7 +55,7 @@ def server_config(cfg: Config) -> dict:
     return {
         "detail_model": cfg.models.generate,
         "effort": cfg.models.effort,
-        "max_tokens": 16000,
+        "max_tokens": DETAIL_MAX_TOKENS,
         "monthly_usd": cfg.budget.monthly_usd,
         "prices": cfg.budget.prices,
         "assumed_detail_tokens": list(cfg.budget.assumed_tokens["detail"]),

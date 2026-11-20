@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { isRightOption } from "../lib/logic";
+import { isRightOption, shuffledOptions } from "../lib/logic";
 import { colors, space } from "../lib/theme";
 import type { Attempt, QuestionRow } from "../lib/types";
 import { MathText, Toggle } from "./ui";
@@ -40,7 +40,7 @@ export function QuestionBlock({
 
       {q.kind === "mcq" && (
         <View style={styles.options}>
-          {q.options.map((o) => {
+          {shuffledOptions(q.options, q.id).map((o) => {
             const chosen = shown?.answer === o;
             const right = isRightOption(q, o);
             const mark = shown ? (right ? styles.right : chosen ? styles.wrong : null) : null;

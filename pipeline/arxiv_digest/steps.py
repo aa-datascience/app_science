@@ -19,6 +19,9 @@ from .models import Candidate, Card, Detail, Figure, Paper, Question, RankBatch,
 
 log = logging.getLogger(__name__)
 PROMPTS = REPO_ROOT / "prompts"
+# Sortie du détail (réflexion comprise) : 11 à 13 000 jetons mesurés avec concepts et questions ;
+# 16 000 coupait parfois la réponse, payée sans résultat. On ne paie que ce qui est produit.
+DETAIL_MAX_TOKENS = 32000
 
 
 @dataclass
@@ -221,6 +224,7 @@ def detail_req(art: Article, cfg: Config, label: str = "", known_concepts: str =
         content=[{"type": "text", "text": f"<paper>\n{art.text}\n</paper>"}, {"type": "text", "text": prompt}],
         schema=Detail,
         tag={"arxiv_id": paper.arxiv_id, "label": label, "mode": art.mode},
+        max_tokens=DETAIL_MAX_TOKENS,
     )
     return req, version
 

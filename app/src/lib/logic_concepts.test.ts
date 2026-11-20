@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { conceptName, filterConcepts, isRightOption, lastAttempts, questionsLine } from "./logic.ts";
+import { conceptName, filterConcepts, isRightOption, lastAttempts, questionsLine, shuffledOptions } from "./logic.ts";
 import type { ConceptCard } from "./types.ts";
 
 const card = (id: string, name: string, simple = ""): ConceptCard => ({
@@ -31,4 +31,12 @@ test("recherche de concepts, ordre alphabétique, nom d'un lien", () => {
   assert.equal(conceptName(all, "gone"), "gone");
   assert.equal(questionsLine(4, 3), "3/4");
   assert.equal(questionsLine(0, 0), "–");
+});
+
+test("options mélangées : stables pour une question, complètes, bonne réponse pas toujours en tête", () => {
+  const opts = ["right", "b", "c", "d"];
+  assert.deepEqual(shuffledOptions(opts, 7), shuffledOptions(opts, 7));
+  assert.deepEqual([...shuffledOptions(opts, 7)].sort(), [...opts].sort());
+  const firsts = new Set(Array.from({ length: 20 }, (_, i) => shuffledOptions(opts, i + 1)[0]));
+  assert.ok(firsts.size > 1);
 });

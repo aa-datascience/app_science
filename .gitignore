@@ -15,3 +15,4 @@ __pycache__/
 # App (plus tard)
 node_modules/
 .expo/
+supabase/.temp/

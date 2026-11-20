@@ -1,0 +1,9 @@
+{
+  "name": "schema-check",
+  "private": true,
+  "type": "module",
+  "description": "Applique les migrations Supabase sur un Postgres embarqué (PGlite), sans toucher au vrai projet.",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16"
+  }
+}

@@ -1,6 +1,8 @@
 # App de veille arXiv
 
-Édition quotidienne d'articles de physique tirés d'arXiv, expliqués et vérifiés. La spec complète est dans `docs/SPEC.md` : la lire avant tout changement de périmètre.
+Édition quotidienne d'articles de physique tirés d'arXiv, expliqués et vérifiés. Spec produit d'origine : `docs/SPEC_PRODUIT.md` ; architecture réellement construite : `docs/SPEC.md`. Les lire avant tout changement de périmètre.
+
+**Reprise du projet (V2 étapes 4-5, V3) : lire d'abord `docs/PASSATION.md`** (mission, accès, décisions, méthode).
 
 ## Structure
 
@@ -8,6 +10,7 @@
 - `prompts/` — prompts versionnés (la version enregistrée est l'empreinte du fichier).
 - `config.yaml` — réglages (catégories, modèles, poids, plafond de dépense). Secrets dans `.env`, jamais commités.
 - `out/` — sorties locales, non commitées.
+- `supabase/check/` — vérification des migrations sur un Postgres embarqué (`npm install` puis `node check_schema.mjs`).
 - `supabase/` — migration SQL (tables, RLS, vue `edition_today`) et Edge Function `open-paper` (détail à l'ouverture). Mise en service : `docs/SUPABASE.md`.
 - État du pipeline : fichiers locaux, ou base Supabase dès que `SUPABASE_URL` et `SUPABASE_SERVICE_KEY` sont dans `.env` (`store.py`).
 - `.github/workflows/` — édition de nuit, notifications, tests. Fonctionnement et secrets : `docs/GITHUB_ACTIONS.md`.
@@ -27,7 +30,7 @@
 ## Règles
 
 - Demander avant toute dépense ou tout choix d'hébergement. Lancer le pipeline sans `--no-llm` est une dépense.
-- Ne pas changer les modèles par défaut de `config.yaml` sans décision explicite.
+- Ne pas changer les modèles par défaut de `config.yaml` sans décision explicite. Décision du 20 novembre 2026 : Claude Haiku partout, y compris pour les fonctions à venir.
 - Plafond mensuel (`budget.monthly_usd`) : la taille de l'édition est fixée avant tout appel payant (`budget.py`) ; une édition n'est jamais coupée en cours de route.
 - La clé API vit dans `.env` uniquement. Ne jamais commiter `.env`, ne jamais mettre de clé dans `.env.example`.
 - Aucun appel réel à l'API Claude dans les tests.

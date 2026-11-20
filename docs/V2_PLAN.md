@@ -104,7 +104,7 @@ Profil, stats et carnet ne coûtent rien : Python et SQL, sans modèle. Avec Son
 
 ## 6. Décisions prises (14 novembre 2026)
 
-1. **Modèle du détail** : Haiku. Le détail seul doit pouvoir passer à Sonnet par une ligne de configuration (`models.generate` dans `config.yaml`, recopiée chaque nuit pour la fonction `open-paper`) ; décision après une semaine d'usage.
+1. **Modèle du détail** : Haiku. Le détail seul doit pouvoir passer à Sonnet par une ligne de configuration (`models.generate` dans `config.yaml`, recopiée chaque nuit pour la fonction `open-paper`) ; décision après une semaine d'usage. **Tranché le 20 novembre 2026 : Haiku partout**, détail compris, et pour toutes les nouvelles fonctions (V2 et V3).
 2. **Poids modifié à la main** : l'apprentissage continue à partir de la valeur saisie ; un verrou optionnel par poids dans l'écran Profil (`locked`).
 3. **Portée de l'apprentissage** : poids des catégories, poids des mots-clés déjà présents, niveaux par sous-domaine. Pas de mots-clés ajoutés automatiquement.
 4. **Force de l'apprentissage et signaux implicites** : +0,05 pour « interesting », −0,05 pour « not for me », +0,10 pour Save, retour de 2 % vers la valeur de repos à chaque édition, bornes 0,2 à 2,0. Signaux implicites faibles : « lu » = 0,5 × un « interesting » (+0,025) ; « ignoré » = 0,25 × un « not for me » (−0,0125), **seulement si la carte est restée au moins 2 secondes à l'écran**. L'app doit donc enregistrer la durée d'affichage de chaque carte.

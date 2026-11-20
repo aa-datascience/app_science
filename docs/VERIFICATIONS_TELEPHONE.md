@@ -121,6 +121,8 @@ Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/84
 
 # Vérifications sur le téléphone — APK n° 8 (retours sur l'APK n° 7)
 
+Build : https://expo.dev/accounts/aa-datascience/projects/arxiv-digest/builds/3d187822-7643-45ac-bbf0-e1c74f2ce286
+
 ## 12. Barre d'onglets et vue profondeur
 
 - [ ] Les cinq libellés de la barre du bas (Today, Notebook, Concepts, Stats, Settings) sont entiers, même avec une grande taille de police dans les réglages d'Android.
